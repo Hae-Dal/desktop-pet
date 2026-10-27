@@ -1,8 +1,10 @@
 """업데이트 내역 창과 '새 버전으로 처음 실행했는지' 확인.
 
-내용은 프로젝트 폴더의 CHANGELOG.md를 그대로 읽어 보여 주므로 따로 적을 곳이 없습니다.
+내용은 프로젝트 폴더의 CHANGELOG.md에서 릴리스된 버전 항목만 골라 보여 줍니다
+(맨 위 안내·주석과 '미반영' 항목은 숨김).
 마지막으로 실행한 버전은 QSettings에 저장됩니다 (Windows는 레지스트리, macOS/Linux는 설정 파일).
 """
+import re
 from pathlib import Path
 
 from PyQt5.QtCore import QSettings, Qt
@@ -23,6 +25,13 @@ def is_new_version() -> bool:
     return True
 
 
+def released_notes(text: str) -> str:
+    """'## 0.4.0 - 날짜' 같은 버전 항목만 남김."""
+    sections = re.split(r"^(?=## )", text, flags=re.M)
+    kept = [s.strip() for s in sections if re.match(r"## \d+\.\d+\.\d+", s)]
+    return "\n\n".join(kept) or "아직 업데이트 내역이 없습니다."
+
+
 class ChangelogDialog(QDialog):
     def __init__(self):
         super().__init__(None, Qt.WindowStaysOnTopHint)
@@ -32,7 +41,7 @@ class ChangelogDialog(QDialog):
         view = QTextBrowser(self)
         view.setOpenExternalLinks(True)
         try:
-            text = CHANGELOG_PATH.read_text(encoding="utf-8")
+            text = released_notes(CHANGELOG_PATH.read_text(encoding="utf-8"))
         except OSError:
             text = "CHANGELOG.md를 찾을 수 없습니다."
         if hasattr(view, "setMarkdown"):      # Qt 5.14 이상
