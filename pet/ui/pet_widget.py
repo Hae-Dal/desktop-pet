@@ -3,10 +3,11 @@ from PyQt5.QtCore import QPoint, Qt, QTimer
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QApplication, QWidget
 
+from pet import __version__
 from pet.config import PetConfig
 from pet.core.context import PetContext
 from pet.core.states import StateMachine, TimedState, build_states
-from pet.ui import menu
+from pet.ui import changelog, menu
 from pet.ui.bubble import BubbleWidget
 from pet.ui.sprites import SpriteSet
 from pet.ui.world import World
@@ -31,6 +32,9 @@ class PetWidget(QWidget):
         self.machine.change("idle")
 
         self.bubble = BubbleWidget()
+        self._changelog = None
+        if changelog.is_new_version():
+            self.ctx.say(f"v{__version__}로 업데이트됐어!\n우클릭 → 업데이트 내역", 150)
 
         self._drag_offset = QPoint()
         self._press_pos = QPoint()
@@ -64,6 +68,13 @@ class PetWidget(QWidget):
         if isinstance(self.machine.current, TimedState) and self.ctx.on_ground:
             self.ctx.vy = self.config.jump_power
             self.machine.change("fall")
+
+    def show_changelog(self) -> None:
+        if self._changelog is None:
+            self._changelog = changelog.ChangelogDialog()
+        self._changelog.show()
+        self._changelog.raise_()
+        self._changelog.activateWindow()
 
     # ---------- 그리기 ----------
     def paintEvent(self, _) -> None:
