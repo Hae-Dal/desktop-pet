@@ -32,7 +32,7 @@ class PetContext:
     # ---------- 위치 ----------
     @property
     def ground_y(self) -> int:
-        return self.world.ground_y(self.height)
+        return self.world.ground_y(self.x, self.y, self.width, self.height)
 
     @property
     def on_ground(self) -> bool:

@@ -54,7 +54,8 @@ class PetWidget(QWidget):
             self.bubble.hide()
             return
         self.bubble.set_text(text)
-        self.bubble.follow(self.frameGeometry(), self.ctx.world.area())
+        c = self.ctx
+        self.bubble.follow(self.frameGeometry(), c.world.area_at(c.x, c.y, c.width, c.height))
         if not self.bubble.isVisible():
             self.bubble.show()
 

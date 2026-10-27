@@ -22,7 +22,7 @@ python main.py [--character 폴더이름] [--size 128]
 | 입력 | 동작 |
 |---|---|
 | 클릭 | 점프 (자는 중이면 깜짝 놀라며 깸) |
-| 드래그 | 옮기기. 놓으면 바닥으로 떨어짐 (화면 밖에 놓으면 화면 안쪽으로) |
+| 드래그 | 옮기기. 놓으면 그 모니터 바닥으로 떨어짐 (화면 밖에 놓으면 화면 안쪽으로) |
 | 우클릭 | 메뉴 (점프 / 종료) |
 
 ## 캐릭터 이미지
@@ -50,7 +50,7 @@ desktop_pet/
         ├── bubble.py          말풍선 (펫을 따라다니는 별도 투명 창)
         ├── menu.py            우클릭 메뉴 항목 목록
         ├── sprites.py         이미지 로딩, 좌우 반전, 임시 도형 대체
-        └── world.py           화면 경계·바닥 좌표 (멀티 모니터 대응 시 여기만 수정)
+        └── world.py           화면 경계·바닥 좌표 (모니터 정보는 실행 중에 읽어 옴)
 ```
 
 의존 방향은 `ui → core` 한쪽뿐입니다. `core`는 위젯이나 화면을 직접 알지 못합니다.
@@ -66,3 +66,22 @@ desktop_pet/
 | 새 행동 추가 | `pet/core/states/`에 파일 추가 → `__init__.py`의 `STATE_CLASSES` 등록 → `transitions.py`에 확률 추가 → `sprites/<캐릭터>/<이름>_1.png` (자세한 방법은 `pet/core/states/__init__.py`) |
 | 우클릭 메뉴 항목 | `pet/ui/menu.py`의 `default_items` |
 | 캐릭터 교체 | `sprites/<이름>/` 폴더를 만들고 `--character <이름>` |
+
+## 버전 관리
+
+현재 버전은 `python main.py --version`으로 확인합니다. 버전별 변경 내용은 [CHANGELOG.md](CHANGELOG.md)에 있습니다.
+
+작업 순서:
+
+1. 기능마다 브랜치를 만듭니다: `git switch -c feature/<이름>` (버그 수정은 `fix/<이름>`)
+2. 작업하면서 커밋하고, `CHANGELOG.md`의 `미반영` 아래에 바뀐 점을 적습니다.
+3. 릴리스할 때 `pet/__init__.py`의 `__version__`을 올리고, `미반영`을 새 버전 번호와 날짜로 바꿉니다.
+4. main에 합치고 태그를 붙입니다:
+   ```
+   git switch main
+   git merge --no-ff feature/<이름>
+   git tag -a v0.3.0 -m "v0.3.0"
+   git push origin main --tags
+   ```
+
+특정 버전으로 돌아가 보려면 `git switch --detach v0.1.0`을 실행하고, 원래대로 돌아오려면 `git switch main`을 실행합니다.

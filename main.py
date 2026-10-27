@@ -9,6 +9,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 
+from pet import __version__
 from pet.config import PetConfig
 from pet.ui.pet_widget import PetWidget
 from pet.ui.sprites import SpriteSet
@@ -22,6 +23,7 @@ def parse_args() -> argparse.Namespace:
                         help="sprites/ 아래 캐릭터 폴더 이름 (기본: %(default)s)")
     parser.add_argument("--size", type=int, default=defaults.max_size,
                         help="캐릭터 최대 크기(px) (기본: %(default)s)")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser.parse_args()
 
 
