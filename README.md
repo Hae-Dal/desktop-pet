@@ -68,6 +68,16 @@ desktop_pet/
 | 우클릭 메뉴 항목 | `pet/ui/menu.py`의 `default_items` |
 | 캐릭터 교체 | `sprites/<이름>/` 폴더를 만들고 `--character <이름>` |
 
+## 오류가 났을 때
+
+처리되지 않은 오류는 앱을 끄지 않고 `error.log`에 기록합니다 (같은 오류는 한 번만).
+
+| OS | 위치 |
+|---|---|
+| Windows | `%APPDATA%\desktop_pet\desktop_pet\error.log` |
+| macOS | `~/Library/Application Support/desktop_pet/desktop_pet/error.log` |
+| Linux | `~/.local/share/desktop_pet/desktop_pet/error.log` |
+
 ## 버전 관리
 
 현재 버전은 `python main.py --version`으로 확인합니다. 버전별 변경 내용은 [CHANGELOG.md](CHANGELOG.md)에 있고,

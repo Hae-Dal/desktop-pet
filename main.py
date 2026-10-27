@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QApplication
 
 from pet import __version__
 from pet.config import PetConfig
+from pet.ui import errorlog
 from pet.ui.pet_widget import PetWidget
 from pet.ui.sprites import SpriteSet
 from pet.ui.world import World
@@ -32,6 +33,9 @@ def main() -> int:
     config = PetConfig(character=args.character, max_size=args.size)
 
     app = QApplication(sys.argv)          # QPixmap 생성보다 먼저 만들어야 함
+    app.setOrganizationName("desktop_pet")
+    app.setApplicationName("desktop_pet")
+    errorlog.install()                    # 오류가 나도 꺼지지 않고 error.log에 기록
     sprites = SpriteSet.load(config)
     pet = PetWidget(config, sprites, World())
     pet.show()
