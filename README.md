@@ -68,10 +68,26 @@ desktop_pet/
 | 우클릭 메뉴 항목 | `pet/ui/menu.py`의 `default_items` |
 | 캐릭터 교체 | `sprites/<이름>/` 폴더를 만들고 `--character <이름>` |
 
+## 오류가 났을 때
+
+처리되지 않은 오류는 앱을 끄지 않고 `error.log`에 기록합니다 (같은 오류는 한 번만).
+
+| OS | 위치 |
+|---|---|
+| Windows | `%APPDATA%\desktop_pet\desktop_pet\error.log` |
+| macOS | `~/Library/Application Support/desktop_pet/desktop_pet/error.log` |
+| Linux | `~/.local/share/desktop_pet/desktop_pet/error.log` |
+
 ## 버전 관리
 
 현재 버전은 `python main.py --version`으로 확인합니다. 버전별 변경 내용은 [CHANGELOG.md](CHANGELOG.md)에 있고,
 앱에서는 우클릭 → "업데이트 내역"으로 같은 내용을 볼 수 있습니다. 새 버전으로 처음 실행하면 펫이 말풍선으로 알려 줍니다.
+
+버전 번호는 `주.부.수` 형식입니다 ([유의적 버전](https://semver.org/lang/ko/)).
+주는 기존 사용법이나 캐릭터 폴더 규칙이 호환되지 않게 바뀔 때, 부는 기능 추가, 수는 버그 수정입니다.
+
+CHANGELOG.md는 앱 사용자에게 그대로 보이므로 코드, 파일 이름, 설정 이름, 명령어는 적지 않고 쉬운 말로만 씁니다.
+개발 관련 내용은 커밋 메시지에 남깁니다.
 
 작업 순서:
 
