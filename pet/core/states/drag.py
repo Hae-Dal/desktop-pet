@@ -11,6 +11,7 @@ class DragState(State):
     def enter(self) -> None:
         super().enter()
         self.ctx.vy = 0
+        self.ctx.vx = 0.0
 
     def update(self) -> Optional[str]:
         return None

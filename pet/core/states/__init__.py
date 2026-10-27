@@ -16,12 +16,13 @@ from pet.core.states.base import State, StateMachine, TimedState
 from pet.core.states.drag import DragState
 from pet.core.states.fall import FallState
 from pet.core.states.idle import IdleState
+from pet.core.states.jump import JumpState
 from pet.core.states.sit import SitState
 from pet.core.states.sleep import SleepState
 from pet.core.states.walk import WalkState
 
 STATE_CLASSES: List[Type[State]] = [
-    IdleState, WalkState, SitState, SleepState, FallState, DragState,
+    IdleState, WalkState, SitState, SleepState, FallState, JumpState, DragState,
 ]
 
 

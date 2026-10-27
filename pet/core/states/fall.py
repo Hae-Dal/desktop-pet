@@ -10,6 +10,7 @@ class FallState(State):
 
     def update(self) -> Optional[str]:
         ctx = self.ctx
+        ctx.x += int(ctx.vx)
         lo, hi = ctx.world.x_range(ctx.width)     # 화면 밖에 놓였으면 안쪽으로 끌어옴
         ctx.x = max(lo, min(ctx.x, hi))
         ctx.vy += ctx.config.gravity
@@ -17,5 +18,6 @@ class FallState(State):
         if ctx.y >= ctx.ground_y and ctx.vy >= 0:
             ctx.snap_to_ground()
             ctx.vy = 0
+            ctx.vx = 0.0
             return "idle"
         return None

@@ -21,6 +21,7 @@ class PetContext:
         self.x = 0
         self.y = 0
         self.vy = 0.0
+        self.vx = 0.0              # 공중에서의 가로 속도 (걷다가 점프할 때)
         self.facing = 1            # 1: 오른쪽, -1: 왼쪽
 
         self.animation = "idle"    # 재생할 애니메이션 이름

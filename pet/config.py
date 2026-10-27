@@ -21,6 +21,7 @@ class PetConfig:
     speed: int = 2                                  # 걷는 속도 (px / tick)
     gravity: float = 1.2
     jump_power: float = -14.0
+    jump_forward_speed: float = 3.0                 # 걷다가 점프할 때 앞으로 나가는 속도 (px / tick)
 
     # --- 애니메이션 ---
     frame_every: int = 8                            # 기본 프레임 전환 간격 (상태별로 따로 정하지 않은 경우)
