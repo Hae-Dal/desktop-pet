@@ -5,8 +5,13 @@ import sys
 from dataclasses import dataclass, fields, replace
 from typing import Tuple
 
-# 프로젝트 루트 (main.py가 있는 폴더). 이 파일은 pet/ 안에 있으므로 한 단계 위.
-PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FROZEN = getattr(sys, "frozen", False)     # PyInstaller로 만든 exe로 실행 중
+
+# 사용자 파일(sprites/)이 있는 폴더. 소스로 실행하면 main.py가 있는 폴더, exe면 exe가 있는 폴더.
+PROJECT_DIR = (os.path.dirname(sys.executable) if FROZEN
+               else os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# 함께 묶인 읽기 전용 파일(CHANGELOG.md)이 있는 폴더. exe면 실행 중 풀리는 임시 폴더.
+BUNDLE_DIR = getattr(sys, "_MEIPASS", PROJECT_DIR)
 
 
 @dataclass

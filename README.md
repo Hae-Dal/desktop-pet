@@ -69,6 +69,7 @@ desktop_pet/
         ├── changelog.py       업데이트 내역 창 (CHANGELOG.md 표시), 새 버전 첫 실행 확인
         ├── menu.py            우클릭 메뉴 항목 목록
         ├── settings_dialog.py 설정 창 (캐릭터 선택, 이미지, 옵션)
+        ├── single_instance.py 중복 실행 방지 (이미 실행 중이면 그 펫이 인사하고 종료)
         ├── sprites.py         이미지 로딩, 좌우 반전, 임시 도형 대체
         └── world.py           화면 경계·바닥 좌표 (모니터 정보는 실행 중에 읽어 옴)
 ```
@@ -89,6 +90,19 @@ desktop_pet/
 | 설정 창에 보이는 동작 목록 | `pet/ui/characters.py`의 `ANIMATIONS` |
 | 이스터에그 캐릭터 | `pet/ui/characters.py`의 `EASTER_EGG` (찾기 전에는 설정 창에 안 보임) |
 | 이스터에그 조건 (연타 횟수·시간) | `pet/config.py`의 `easter_egg_clicks`, `easter_egg_seconds` |
+
+## 배포 파일 만들기
+
+```
+pip install -r requirements.txt pyinstaller
+python build.py
+```
+
+`dist/DesktopPet-v<버전>-windows.zip`이 만들어집니다. 안에는 실행 파일(`DesktopPet.exe`)과 빈 `sprites/` 폴더만 있고,
+캐릭터 이미지는 넣지 않습니다. 받은 사람은 zip을 풀고 exe를 실행하면 되며, Python 설치는 필요 없습니다.
+캐릭터 이미지는 exe 옆 `sprites/` 폴더에 넣거나 설정 창으로 넣습니다.
+
+GitHub에 올리려면 저장소의 Releases → "Draft a new release"에서 태그(예: `v0.6.0`)를 고르고 zip을 첨부합니다.
 
 ## 오류가 났을 때
 
