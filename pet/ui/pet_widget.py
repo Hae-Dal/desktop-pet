@@ -9,13 +9,14 @@ from pet import __version__
 from pet.config import PetConfig
 from pet.core.context import PetContext
 from pet.core.states import StateMachine, TimedState, build_states
-from pet.ui import changelog, characters, menu, updater
+from pet.ui import changelog, characters, menu, topmost, updater
 from pet.ui.bubble import BubbleWidget
 from pet.ui.settings_dialog import SettingsDialog
 from pet.ui.sprites import SpriteSet
 from pet.ui.world import World
 
 UPDATE_CHECK_DELAY_MS = 5000
+KEEP_IN_FRONT_MS = 1000
 
 
 class PetWidget(QWidget):
@@ -57,6 +58,10 @@ class PetWidget(QWidget):
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._tick)
         self._timer.start(config.tick_ms)
+
+        self._front_timer = QTimer(self)                # 다른 창 뒤로 숨지 않게
+        self._front_timer.timeout.connect(lambda: topmost.bring_to_front(self, self.bubble))
+        self._front_timer.start(KEEP_IN_FRONT_MS)
 
     # ---------- 루프 ----------
     def _tick(self) -> None:
