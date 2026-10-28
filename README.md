@@ -14,7 +14,7 @@ python main.py [--character 폴더이름] [--size 128]
 
 | 인자 | 설명 | 기본값 |
 |---|---|---|
-| `--character` | `sprites/` 아래 캐릭터 폴더 이름 | `seal_girl` |
+| `--character` | `sprites/` 아래 캐릭터 폴더 이름 | 설정 창에서 고른 캐릭터, 없으면 `default` |
 | `--size` | 캐릭터 최대 크기(px). 더 큰 이미지는 축소 | 캐릭터의 `character.json`, 없으면 `128` |
 
 ## 조작
@@ -23,7 +23,7 @@ python main.py [--character 폴더이름] [--size 128]
 |---|---|
 | 클릭 | 점프 (자는 중이면 깜짝 놀라며 깸) |
 | 드래그 | 옮기기. 놓으면 그 모니터 바닥으로 떨어짐 (화면 밖에 놓으면 화면 안쪽으로) |
-| 우클릭 | 메뉴 (점프 / 업데이트 내역 / 종료) |
+| 우클릭 | 메뉴 (점프 / 설정 / 업데이트 내역 / 종료) |
 
 ## 캐릭터 이미지
 
@@ -32,6 +32,8 @@ python main.py [--character 폴더이름] [--size 128]
 
 캐릭터 이미지(`sprites/` 아래 .png, .gif)는 저작권 때문에 저장소에 올리지 않습니다 (`.gitignore`).
 새로 받은 PC에서는 이미지를 직접 넣어야 하며, 없으면 임시 도형 캐릭터로 실행됩니다.
+
+가장 쉬운 방법은 우클릭 → **설정**입니다. 캐릭터를 만들고 고르고, 동작별 이미지를 넣고, 아래 옵션을 바꿀 수 있습니다.
 
 캐릭터마다 다른 설정은 같은 폴더의 `character.json`에 적습니다. `pet/config.py`의 설정 이름을 그대로 쓰며, 적은 값만 바뀝니다.
 
@@ -63,8 +65,10 @@ desktop_pet/
     └── ui/                    Qt에 의존하는 부분
         ├── pet_widget.py      창 설정·그리기·마우스 입력
         ├── bubble.py          말풍선 (펫을 따라다니는 별도 투명 창)
+        ├── characters.py      캐릭터 폴더 관리 (목록, 이미지 넣기·지우기, character.json, 사용 중인 캐릭터)
         ├── changelog.py       업데이트 내역 창 (CHANGELOG.md 표시), 새 버전 첫 실행 확인
         ├── menu.py            우클릭 메뉴 항목 목록
+        ├── settings_dialog.py 설정 창 (캐릭터 선택, 이미지, 옵션)
         ├── sprites.py         이미지 로딩, 좌우 반전, 임시 도형 대체
         └── world.py           화면 경계·바닥 좌표 (모니터 정보는 실행 중에 읽어 옴)
 ```
@@ -81,7 +85,10 @@ desktop_pet/
 | 행동 확률 | `pet/core/states/transitions.py` |
 | 새 행동 추가 | `pet/core/states/`에 파일 추가 → `__init__.py`의 `STATE_CLASSES` 등록 → `transitions.py`에 확률 추가 → `sprites/<캐릭터>/<이름>_1.png` (자세한 방법은 `pet/core/states/__init__.py`) |
 | 우클릭 메뉴 항목 | `pet/ui/menu.py`의 `default_items` |
-| 캐릭터 교체 | `sprites/<이름>/` 폴더를 만들고 `--character <이름>` |
+| 캐릭터 교체 | 우클릭 → 설정, 또는 `sprites/<이름>/` 폴더를 만들고 `--character <이름>` |
+| 설정 창에 보이는 동작 목록 | `pet/ui/characters.py`의 `ANIMATIONS` |
+| 이스터에그 캐릭터 | `pet/ui/characters.py`의 `EASTER_EGG` (찾기 전에는 설정 창에 안 보임) |
+| 이스터에그 조건 (연타 횟수·시간) | `pet/config.py`의 `easter_egg_clicks`, `easter_egg_seconds` |
 
 ## 오류가 났을 때
 

@@ -16,6 +16,7 @@ import traceback
 from pathlib import Path
 
 from PyQt5.QtCore import QStandardPaths
+from PyQt5.QtWidgets import QApplication
 
 from pet import __version__
 
@@ -40,6 +41,9 @@ def install() -> Path:
 
 
 def _hook(exc_type, exc, tb) -> None:
+    if issubclass(exc_type, KeyboardInterrupt):      # 터미널에서 Ctrl+C: 오류가 아니라 종료 요청
+        QApplication.quit()
+        return
     text = "".join(traceback.format_exception(exc_type, exc, tb))
     if sys.__stderr__:                  # pythonw로 실행하면 None
         sys.__stderr__.write(text)

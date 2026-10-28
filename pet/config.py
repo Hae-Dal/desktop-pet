@@ -12,7 +12,7 @@ PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 @dataclass
 class PetConfig:
     # --- 캐릭터 ---
-    character: str = "seal_girl"                    # sprites/<character>/ 폴더 이름
+    character: str = "default"                      # sprites/<character>/ 폴더 이름
     sprites_root: str = os.path.join(PROJECT_DIR, "sprites")
     max_size: int = 128                             # 캐릭터 최대 크기(px), 넘으면 축소
     faces_left: bool = False                        # 이미지 속 캐릭터가 왼쪽을 보고 있으면 True
@@ -36,6 +36,10 @@ class PetConfig:
     walk_ticks: Tuple[int, int] = (60, 200)
     sit_ticks: Tuple[int, int] = (80, 200)
     sleep_ticks: Tuple[int, int] = (200, 500)
+
+    # --- 이스터에그 ---
+    easter_egg_clicks: int = 10                     # 이 횟수만큼
+    easter_egg_seconds: float = 3.0                 # 이 시간(초) 안에 클릭하면 숨은 캐릭터 등장
 
     # --- 말풍선 ---
     idle_chat_chance: float = 0.3                   # idle 상태로 들어갈 때 혼잣말할 확률
