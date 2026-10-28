@@ -24,16 +24,9 @@ def qapp():
 
 
 @pytest.fixture(autouse=True)
-def keep_user_settings():
-    """테스트는 빈 저장값에서 시작하고, 끝나면 사용자의 원래 값을 되돌려 놓음."""
-    store = prefs.store()
-    saved = {k: store.value(k) for k in store.allKeys()}
-    store.clear()
-    yield
-    store.clear()
-    for k, v in saved.items():
-        store.setValue(k, v)
-    store.sync()
+def separate_settings(tmp_path, monkeypatch):
+    """테스트마다 빈 임시 파일에 저장. 사용자의 실제 저장값(레지스트리 등)은 읽지도 쓰지도 않음."""
+    monkeypatch.setattr(prefs, "override_file", str(tmp_path / "prefs.ini"))
 
 
 class FakeWorld:

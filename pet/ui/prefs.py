@@ -14,8 +14,13 @@ _EASTER_EGG = "unlocked_easter_egg"     # 숨은 캐릭터를 찾았는지
 _CHECK_UPDATES = "check_updates"        # 새 버전 확인 켜기/끄기
 _LAST_SEEN_VERSION = "last_seen_version"
 
+# 정해 두면 원래 저장 위치 대신 이 ini 파일을 씀 (테스트가 사용자 값을 건드리지 않게)
+override_file: Optional[str] = None
+
 
 def store() -> QSettings:
+    if override_file:
+        return QSettings(override_file, QSettings.IniFormat)
     return QSettings(ORGANIZATION, APPLICATION)
 
 
