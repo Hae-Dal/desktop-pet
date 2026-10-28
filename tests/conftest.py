@@ -10,22 +10,23 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
-from PyQt5.QtCore import QSettings
 from PyQt5.QtWidgets import QApplication
+
+from pet.ui import prefs
 
 
 @pytest.fixture(scope="session")
 def qapp():
     app = QApplication.instance() or QApplication([])
-    app.setOrganizationName("desktop_pet")
-    app.setApplicationName("desktop_pet")
+    app.setOrganizationName(prefs.ORGANIZATION)
+    app.setApplicationName(prefs.APPLICATION)
     return app
 
 
 @pytest.fixture(autouse=True)
 def keep_user_settings():
     """테스트는 빈 저장값에서 시작하고, 끝나면 사용자의 원래 값을 되돌려 놓음."""
-    store = QSettings("desktop_pet", "desktop_pet")
+    store = prefs.store()
     saved = {k: store.value(k) for k in store.allKeys()}
     store.clear()
     yield

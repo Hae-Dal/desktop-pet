@@ -7,14 +7,14 @@ from PyQt5.QtWidgets import QApplication
 
 from pet import config as config_module
 from pet.config import PetConfig
-from pet.ui import characters, menu, pet_widget, updater
+from pet.ui import characters, menu, pet_widget, prefs
 from pet.ui.sprites import SpriteSet
 from pet.ui.world import World
 
 
 @pytest.fixture
 def make_pet(qapp, monkeypatch):
-    monkeypatch.setattr(updater, "is_enabled", lambda: False)   # 테스트 중 인터넷 확인 안 함
+    prefs.set_check_updates(False)   # 테스트 중 인터넷 확인 안 함
     pets = []
 
     def make(config=None):
@@ -75,8 +75,11 @@ def test_drag_moves_then_falls(make_pet):
         mouse(pet, QEvent.MouseMove, QPoint(10 + 10, 10 - 20))
     mouse(pet, QEvent.MouseButtonRelease, QPoint(10, 10), Qt.NoButton)
     assert pet.machine.current_name == "fall" and pet.ctx.y < start.y()
-    ticks(pet, 200)
-    assert pet.ctx.y == pet.ctx.ground_y
+    for _ in range(200):                # 착지한 순간을 확인 (그 뒤엔 스스로 점프할 수도 있음)
+        ticks(pet, 1)
+        if pet.machine.current_name != "fall":
+            break
+    assert pet.machine.current_name == "idle" and pet.ctx.y == pet.ctx.ground_y
 
 
 def test_update_menu_item_only_when_new_version(make_pet):
@@ -112,14 +115,13 @@ def bundled_egg(tmp_path, monkeypatch):
 
 
 def test_easter_egg_after_fast_clicks(make_pet, bundled_egg, monkeypatch):
-    monkeypatch.setattr(characters, "set_active_character", lambda name: None)
     pet = make_pet(PetConfig(sprites_root=str(bundled_egg)))
     for _ in range(pet.config.easter_egg_clicks - 1):
         QTest.mouseClick(pet, Qt.LeftButton, pos=QPoint(5, 5))
     assert pet.config.character == "default"
     QTest.mouseClick(pet, Qt.LeftButton, pos=QPoint(5, 5))
     assert pet.config.character == characters.EASTER_EGG
-    assert characters.is_easter_egg_unlocked()
+    assert prefs.easter_egg_unlocked() and prefs.active_character() == characters.EASTER_EGG
     assert (bundled_egg / characters.EASTER_EGG / "idle.png").exists()      # sprites/로 꺼내 둠
 
 

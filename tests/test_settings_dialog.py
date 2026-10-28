@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QCheckBox, QListWidget, QPushButton, QSpinBox
 
 from pet.config import DEFAULT_LINES, PetConfig
-from pet.ui import updater
+from pet.ui import prefs
 from pet.ui.settings_dialog import SettingsDialog
 
 
@@ -106,8 +106,7 @@ def test_options_are_saved(root):
 
 
 def test_update_check_toggle(root):
-    updater.set_enabled(True)
     ui = Dialog(root)
     [c for c in ui.d.findChildren(QCheckBox) if "새 버전" in c.text()][0].setChecked(False)
     ui.apply()
-    assert updater.is_enabled() is False
+    assert prefs.check_updates() is False

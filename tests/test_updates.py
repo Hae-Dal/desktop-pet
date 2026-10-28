@@ -7,7 +7,7 @@ import pytest
 from PyQt5.QtCore import QEventLoop, QTimer
 
 from pet import __version__
-from pet.ui import changelog, updater
+from pet.ui import changelog, prefs, updater
 
 
 def test_changelog_shows_only_released_versions():
@@ -18,8 +18,6 @@ def test_changelog_shows_only_released_versions():
 
 
 def test_first_run_of_a_version_is_detected_once(qapp):
-    from PyQt5.QtCore import QSettings
-    QSettings("desktop_pet", "desktop_pet").remove("last_seen_version")
     assert changelog.is_new_version() is True
     assert changelog.is_new_version() is False
 
@@ -89,7 +87,6 @@ def test_running_pet_checks_again_and_does_not_repeat(qapp, github, monkeypatch)
     from pet.ui.world import World
     monkeypatch.setattr(pet_widget, "UPDATE_CHECK_DELAY_MS", 50)
     monkeypatch.setattr(pet_widget, "UPDATE_CHECK_INTERVAL_MS", 300)
-    updater.set_enabled(True)
     pet = pet_widget.PetWidget(PetConfig(), SpriteSet({}), World())
     notices = []
     say = pet.ctx.say
@@ -100,7 +97,7 @@ def test_running_pet_checks_again_and_does_not_repeat(qapp, github, monkeypatch)
     github.tag = "v99.1.0"
     wait(400)
     assert len(notices) == 2 and pet.new_version == "99.1.0"
-    updater.set_enabled(False)
+    prefs.set_check_updates(False)
     hits = github.hits
     wait(400)
     assert github.hits == hits                  # 끄면 확인 안 함

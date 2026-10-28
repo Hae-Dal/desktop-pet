@@ -7,7 +7,7 @@ import json
 import re
 from typing import Optional, Tuple
 
-from PyQt5.QtCore import QObject, QSettings, QUrl, pyqtSignal
+from PyQt5.QtCore import QObject, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
 from pet import __version__
@@ -15,15 +15,6 @@ from pet import __version__
 REPO = "Hae-Dal/desktop-pet"
 LATEST_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
 TIMEOUT_MS = 10000
-_ENABLED_KEY = "check_updates"
-
-
-def is_enabled() -> bool:
-    return QSettings("desktop_pet", "desktop_pet").value(_ENABLED_KEY, True, type=bool)
-
-
-def set_enabled(on: bool) -> None:
-    QSettings("desktop_pet", "desktop_pet").setValue(_ENABLED_KEY, on)
 
 
 def parse_version(text: str) -> Optional[Tuple[int, ...]]:

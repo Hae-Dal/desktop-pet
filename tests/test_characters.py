@@ -5,7 +5,7 @@ import pytest
 from PyQt5.QtGui import QColor, QPixmap
 
 from pet.config import PetConfig
-from pet.ui import characters
+from pet.ui import characters, prefs
 from pet.ui.sprites import SpriteSet, scan_directory
 
 
@@ -25,7 +25,7 @@ def root(tmp_path, qapp):
 
 def test_easter_egg_hidden_until_found(root):
     assert characters.list_characters(str(root)) == ["cat"]
-    characters.unlock_easter_egg()
+    prefs.unlock_easter_egg()
     assert characters.list_characters(str(root)) == sorted(["cat", characters.EASTER_EGG])
 
 
@@ -66,9 +66,12 @@ def test_write_settings_merges_and_removes(root):
     assert characters.read_settings(char) == {"max_size": 99, "faces_left": True}
 
 
-def test_active_character_is_remembered(qapp):
-    characters.set_active_character("cat")
-    assert characters.active_character() == "cat"
+def test_saved_values_are_remembered(qapp):
+    assert prefs.active_character() is None and prefs.check_updates() is True
+    assert prefs.easter_egg_unlocked() is False
+    prefs.set_active_character("cat")
+    prefs.set_check_updates(False)
+    assert prefs.active_character() == "cat" and prefs.check_updates() is False
 
 
 def test_scan_directory_groups_by_name(tmp_path, qapp):

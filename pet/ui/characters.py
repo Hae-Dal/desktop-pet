@@ -8,9 +8,8 @@ import re
 import shutil
 from typing import Dict, Iterable, List, Optional
 
-from PyQt5.QtCore import QSettings
-
 from pet import config
+from pet.ui import prefs
 from pet.ui.sprites import scan_directory
 
 # 설정 창에 보여 줄 동작 (이미지 이름, 표시 이름). 순서대로 표시됨
@@ -27,15 +26,13 @@ ANIMATIONS = [
 EASTER_EGG = "seal_girl"
 
 _INVALID_NAME = re.compile(r'[\\/:*?"<>|]|^\.|^$')
-_ACTIVE_KEY = "character"
-_UNLOCKED_KEY = "unlocked_easter_egg"
 
 
 def list_characters(root: str) -> List[str]:
     """설정 창에 보여 줄 캐릭터 (찾지 않은 이스터에그 캐릭터는 뺌)."""
     if not os.path.isdir(root):
         return []
-    hidden = set() if is_easter_egg_unlocked() else {EASTER_EGG}
+    hidden = set() if prefs.easter_egg_unlocked() else {EASTER_EGG}
     return sorted(n for n in os.listdir(root)
                   if os.path.isdir(os.path.join(root, n)) and n not in hidden)
 
@@ -54,14 +51,6 @@ def install_bundled(root: str, name: str) -> None:
     src = os.path.join(config.BUNDLED_SPRITES_DIR, name)
     if not exists(root, name) and os.path.isdir(src):
         shutil.copytree(src, os.path.join(root, name))
-
-
-def is_easter_egg_unlocked() -> bool:
-    return QSettings("desktop_pet", "desktop_pet").value(_UNLOCKED_KEY, False, type=bool)
-
-
-def unlock_easter_egg() -> None:
-    QSettings("desktop_pet", "desktop_pet").setValue(_UNLOCKED_KEY, True)
 
 
 def is_valid_name(name: str) -> bool:
@@ -122,11 +111,3 @@ def write_settings(char_dir: str, values: Dict, remove: Iterable[str] = ()) -> N
     with open(os.path.join(char_dir, "character.json"), "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
         f.write("\n")
-
-
-def active_character() -> Optional[str]:
-    return QSettings("desktop_pet", "desktop_pet").value(_ACTIVE_KEY)
-
-
-def set_active_character(name: str) -> None:
-    QSettings("desktop_pet", "desktop_pet").setValue(_ACTIVE_KEY, name)

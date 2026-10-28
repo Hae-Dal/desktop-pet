@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import (
 )
 
 from pet.config import DEFAULT_LINES, PetConfig
-from pet.ui import characters, updater
+from pet.ui import characters, prefs
 
 PREVIEW = 64           # 미리보기 칸 크기(px)
 IMAGE_FILTER = "이미지 (*.png *.gif)"
@@ -130,7 +130,7 @@ class SettingsDialog(QDialog):
         general_box = QGroupBox("일반")
         general = QVBoxLayout(general_box)
         self.check_updates = QCheckBox("새 버전이 나오면 알려 주기")
-        self.check_updates.setChecked(updater.is_enabled())
+        self.check_updates.setChecked(prefs.check_updates())
         general.addWidget(self.check_updates)
 
         right = QVBoxLayout()
@@ -339,9 +339,9 @@ class SettingsDialog(QDialog):
                                       remove=["idle_lines"] if "lines" in values else [])
         self._files.clear()
         self._options.clear()
-        updater.set_enabled(self.check_updates.isChecked())
+        prefs.set_check_updates(self.check_updates.isChecked())
         if self._shown:
-            characters.set_active_character(self._shown)
+            prefs.set_active_character(self._shown)
             self.on_apply(self._shown)
 
     def _ok(self) -> None:

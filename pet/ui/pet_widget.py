@@ -9,7 +9,7 @@ from pet import __version__
 from pet.config import PetConfig
 from pet.core.context import PetContext
 from pet.core.states import StateMachine, TimedState, build_states
-from pet.ui import changelog, characters, menu, topmost, updater
+from pet.ui import changelog, characters, menu, prefs, topmost, updater
 from pet.ui.bubble import BubbleWidget
 from pet.ui.settings_dialog import SettingsDialog
 from pet.ui.sprites import SpriteSet
@@ -92,7 +92,7 @@ class PetWidget(QWidget):
             self.machine.change("fall")
 
     def _check_update(self) -> None:
-        if updater.is_enabled():            # 설정 창에서 끄면 그다음 차례부터 확인 안 함
+        if prefs.check_updates():            # 설정 창에서 끄면 그다음 차례부터 확인 안 함
             self._updater.check()
 
     def _on_update_available(self, version: str, url: str) -> None:
@@ -188,7 +188,7 @@ class PetWidget(QWidget):
         if self.config.character == name or not characters.has_images(self.config.sprites_root, name):
             return                                       # 이미 그 캐릭터거나, 이미지가 없는 PC
         characters.install_bundled(self.config.sprites_root, name)
-        characters.unlock_easter_egg()
-        characters.set_active_character(name)
+        prefs.unlock_easter_egg()
+        prefs.set_active_character(name)
         self.change_character(name)
         self.ctx.say("짠! 물범이랑 같이 왔어", 120)
