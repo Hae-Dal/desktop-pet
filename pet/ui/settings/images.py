@@ -9,9 +9,10 @@ from PyQt5.QtGui import QImageReader, QMovie, QPixmap
 from PyQt5.QtWidgets import QFileDialog, QFrame, QGridLayout, QGroupBox, QLabel, QMessageBox, QPushButton
 
 from pet.ui import characters
+from pet.ui.sprites import ANIMATED, EXTENSIONS
 
 PREVIEW = 64           # 미리보기 칸 크기(px)
-IMAGE_FILTER = "이미지 (*.png *.gif)"
+IMAGE_FILTER = "이미지 (%s)" % " ".join("*." + ext for ext in EXTENSIONS)
 
 
 class ImagePanel(QGroupBox):
@@ -99,7 +100,7 @@ class ImagePanel(QGroupBox):
         if not path:
             label.setText("없음")
             return
-        if path.lower().endswith(".gif"):
+        if path.lower().rsplit(".", 1)[-1] in ANIMATED:
             # 파일을 열어 둔 채로 두면 Windows에서 적용할 때 지우거나 덮어쓸 수 없어 메모리로 읽음
             with open(path, "rb") as f:
                 buffer = QBuffer(self)

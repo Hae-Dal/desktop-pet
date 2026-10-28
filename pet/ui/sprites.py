@@ -4,10 +4,11 @@ sprites/<character>/ 폴더 안의 파일 이름으로 애니메이션을 자동
 
     walk_1.png, walk_2.png, ...   -> "walk" 애니메이션 (번호의 숫자 크기순)
     idle.png                      -> "idle" 애니메이션 (1장)
-    sit.gif                       -> "sit" 애니메이션 (GIF의 모든 프레임)
+    sit.gif                       -> "sit" 애니메이션 (움직이는 GIF·WebP는 모든 프레임)
 
+형식은 EXTENSIONS에 있는 것만 읽습니다 (JPG·BMP는 투명 배경이 없음).
 이름은 소문자로 통일하고(Walk_1.PNG -> "walk"), 같은 이름이 여러 형식으로 있으면
-번호 붙은 파일 > <이름>.png > <이름>.gif 순으로 하나만 씁니다.
+번호 붙은 파일 > 번호 없는 파일 중 EXTENSIONS 순서가 앞선 것 하나만 씁니다.
 새 행동용 이미지를 추가하려면 `<이름>_N.png` 또는 `<이름>.gif`로 넣기만 하면 됩니다.
 없는 애니메이션을 요청받으면 "idle"로 대체됩니다.
 
@@ -22,13 +23,16 @@ from PyQt5.QtGui import QColor, QMovie, QPainter, QPixmap, QTransform
 
 from pet.config import PetConfig
 
-# <이름>[_번호].<png|gif>  (이름에 '_'를 써도 됨: sleep_left_1.png -> "sleep_left", 대소문자 무시)
-_FILE_RE = re.compile(r"^([a-z]+(?:_[a-z]+)*)(?:_(\d+))?\.(png|gif)$", re.IGNORECASE)
+EXTENSIONS = ("png", "webp", "gif", "jpg", "jpeg", "bmp")    # 번호 없는 파일끼리는 이 순서로 고름
+ANIMATED = ("gif", "webp")                                   # 한 파일에 여러 프레임이 있을 수 있는 형식
+
+# <이름>[_번호].<확장자>  (이름에 '_'를 써도 됨: sleep_left_1.png -> "sleep_left", 대소문자 무시)
+_FILE_RE = re.compile(r"^([a-z]+(?:_[a-z]+)*)(?:_(\d+))?\.(%s)$" % "|".join(EXTENSIONS), re.IGNORECASE)
 
 
 class SpriteFile(NamedTuple):
     number: Optional[int]       # walk_3.png -> 3, idle.png -> None
-    ext: str                    # "png" / "gif"
+    ext: str                    # "png", "gif", ... (소문자)
     path: str
 
 
@@ -56,26 +60,29 @@ def scan_directory(directory: str) -> Dict[str, List[SpriteFile]]:
     return found
 
 
-def _load_animation(files: List[SpriteFile], max_size: int) -> List[QPixmap]:
-    """우선순위: 번호 붙은 파일들(_1, _2, ...) > <이름>.png > <이름>.gif의 모든 프레임."""
-    frames: List[QPixmap] = []
-
+def pick_files(files: List[SpriteFile]) -> List[SpriteFile]:
+    """한 동작의 파일들 중 실제로 쓸 것: 번호 붙은 파일들(번호순), 없으면 번호 없는 파일 하나."""
     numbered = sorted((f for f in files if f.number is not None), key=lambda f: f.number)
-    single_png = [f for f in files if f.number is None and f.ext == "png"]
-    gif = [f for f in files if f.number is None and f.ext == "gif"]
+    single = sorted((f for f in files if f.number is None), key=lambda f: EXTENSIONS.index(f.ext))
+    return numbered or single[:1]
 
-    for f in numbered or single_png:
-        pix = QPixmap(f.path)
-        if not pix.isNull():
-            frames.append(_scale(pix, max_size))
 
-    if not frames and gif:
-        movie = QMovie(gif[0].path)
+def _read_frames(f: SpriteFile) -> List[QPixmap]:
+    """번호 없는 GIF·WebP는 모든 프레임, 그 외(번호 붙은 파일 포함)는 한 장."""
+    if f.number is None and f.ext in ANIMATED:
+        movie = QMovie(f.path)
+        frames = []
         for i in range(movie.frameCount()):
             movie.jumpToFrame(i)
-            frames.append(_scale(movie.currentPixmap(), max_size))
+            frames.append(movie.currentPixmap())
+        if frames:
+            return frames
+    pix = QPixmap(f.path)
+    return [] if pix.isNull() else [pix]
 
-    return frames
+
+def _load_animation(files: List[SpriteFile], max_size: int) -> List[QPixmap]:
+    return [_scale(pix, max_size) for f in pick_files(files) for pix in _read_frames(f)]
 
 
 def _make_placeholder() -> Dict[str, List[QPixmap]]:

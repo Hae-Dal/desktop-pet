@@ -28,9 +28,9 @@ python main.py [--character 폴더이름] [--size 128]
 ## 캐릭터 이미지
 
 `sprites/<캐릭터>/` 폴더에 `walk_1.png`, `walk_2.png`, `idle.png`, `sleep.gif` 같은 이름으로 넣으면
-자동으로 인식합니다. 자세한 파일 이름 규칙은 [sprites/default/README.txt](sprites/default/README.txt)를 보세요.
+자동으로 인식합니다. 형식은 PNG, GIF, WebP, JPG, BMP를 쓸 수 있습니다 (`pet/ui/sprites.py`의 `EXTENSIONS`). 자세한 파일 이름 규칙은 [sprites/default/README.txt](sprites/default/README.txt)를 보세요.
 
-캐릭터 이미지(`sprites/` 아래 .png, .gif)는 저작권 때문에 저장소에 올리지 않습니다 (`.gitignore`).
+캐릭터 이미지(`sprites/` 아래 이미지 파일)는 저작권 때문에 저장소에 올리지 않습니다 (`.gitignore`).
 이스터에그 캐릭터만 배포 파일(exe) 안에 숨겨서 넣습니다. 이 이미지는 넥슨 메이플스토리 캐릭터로,
 넥슨 2차 창작 가이드라인에 따라 **비상업적 용도로만** 사용합니다. 이 프로그램을 판매하거나 수익을 내는 데 쓰지 마세요.
 새로 받은 PC에서는 이미지를 직접 넣어야 하며, 없으면 임시 도형 캐릭터로 실행됩니다.

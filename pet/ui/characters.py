@@ -10,7 +10,7 @@ from typing import Dict, List, Optional
 
 from pet import config
 from pet.ui import easter_egg, prefs
-from pet.ui.sprites import scan_directory
+from pet.ui.sprites import pick_files, scan_directory
 
 # 설정 창에 보여 줄 동작 (이미지 이름, 표시 이름). 순서대로 표시됨
 ANIMATIONS = [
@@ -53,15 +53,9 @@ def delete_character(root: str, name: str) -> None:
 
 
 def animation_file(char_dir: str, anim: str) -> Optional[str]:
-    """그 동작에 실제로 쓰이는 파일 (번호 붙은 파일 > .png > .gif). 미리보기용."""
-    files = scan_directory(char_dir).get(anim, [])
-    numbered = sorted((f for f in files if f.number is not None), key=lambda f: f.number)
-    png = [f for f in files if f.number is None and f.ext == "png"]
-    gif = [f for f in files if f.number is None and f.ext == "gif"]
-    for group in (numbered, png, gif):
-        if group:
-            return group[0].path
-    return None
+    """그 동작에 실제로 쓰이는 첫 파일. 미리보기용."""
+    picked = pick_files(scan_directory(char_dir).get(anim, []))
+    return picked[0].path if picked else None
 
 
 def clear_animation(char_dir: str, anim: str) -> None:

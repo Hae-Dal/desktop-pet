@@ -1,5 +1,7 @@
 """캐릭터 폴더 관리와 이미지 불러오기."""
 import json
+import shutil
+from pathlib import Path
 
 import pytest
 from PyQt5.QtGui import QColor, QPixmap
@@ -7,6 +9,9 @@ from PyQt5.QtGui import QColor, QPixmap
 from pet.config import PetConfig
 from pet.ui import characters, easter_egg, prefs
 from pet.ui.sprites import SpriteSet, scan_directory
+
+
+DATA = Path(__file__).parent / "data"      # anim.gif, anim.webp: 12x8, 빨강·초록·파랑 3프레임
 
 
 def png(path, w=10, h=10):
@@ -57,6 +62,37 @@ def test_animation_file_priority(root):
     for name in ("idle.gif", "idle.png", "idle_2.png", "idle_1.png"):
         png(char / name) if name.endswith("png") else (char / name).write_bytes(b"")
     assert characters.animation_file(str(char), "idle").endswith("idle_1.png")
+
+
+def test_animation_file_prefers_png_then_by_format(root):
+    char = root / "cat"
+    for name in ("idle.bmp", "idle.jpg", "idle.gif"):
+        (char / name).write_bytes(b"")
+    assert characters.animation_file(str(char), "idle").endswith("idle.gif")
+    (char / "idle.png").write_bytes(b"")
+    assert characters.animation_file(str(char), "idle").endswith("idle.png")
+
+
+@pytest.mark.parametrize("ext", ["jpg", "jpeg", "bmp", "webp", "JPG"])
+def test_other_formats_load(tmp_path, qapp, ext):
+    (tmp_path / "cat").mkdir()
+    png(tmp_path / "cat" / f"walk_1.{ext}", 30, 20)
+    png(tmp_path / "cat" / f"idle.{ext}", 30, 20)
+    sprites = SpriteSet.load(PetConfig(character="cat", sprites_root=str(tmp_path)))
+    assert sprites.has("walk") and sprites.has("idle") and sprites.size == (30, 20)
+
+
+@pytest.mark.parametrize("ext", ["gif", "webp"])
+def test_animated_file_uses_all_frames(tmp_path, qapp, ext):
+    (tmp_path / "cat").mkdir()
+    shutil.copy(DATA / f"anim.{ext}", tmp_path / "cat" / f"walk.{ext}")
+    shutil.copy(DATA / f"anim.{ext}", tmp_path / "cat" / f"idle_1.{ext}")     # 번호 붙으면 첫 프레임만
+    sprites = SpriteSet.load(PetConfig(character="cat", sprites_root=str(tmp_path)))
+    def colors(anim):
+        return [sprites.frame(anim, i, 1).toImage().pixelColor(0, 0).name() for i in range(4)]
+    assert colors("walk") == ["#ff0000", "#00ff00", "#0000ff", "#ff0000"]     # 3프레임 반복
+    assert colors("idle") == ["#ff0000"] * 4
+    assert sprites.size == (12, 8)
 
 
 def test_write_settings_merges(root):
