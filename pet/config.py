@@ -72,18 +72,30 @@ class PetConfig:
         예: {"faces_left": true, "max_size": 160, "frame_every": 4,
              "lines": {"idle": ["물범아 놀자!", "졸려..."]}}
         """
-        path = os.path.join(self.character_dir, "character.json")
-        if not os.path.isfile(path):
-            return self
-        with open(path, encoding="utf-8") as f:
-            data = json.load(f)
-        if "idle_lines" in data:            # 0.9 이하 형식: 혼잣말 목록만 따로 있던 것
-            data.setdefault("lines", {}).setdefault("idle", data.pop("idle_lines"))
+        data = read_character_file(self.character_dir)
         if "lines" in data:
             data["lines"] = {k: tuple(v) for k, v in data["lines"].items()}
         allowed = {f.name for f in fields(self)} - {"character", "sprites_root"}
         unknown = set(data) - allowed
         if unknown:
-            print(f"{path}: 모르는 설정 무시 {sorted(unknown)}", file=sys.stderr)
+            print(f"{self.character_dir}: character.json의 모르는 설정 무시 {sorted(unknown)}", file=sys.stderr)
         values = {k: tuple(v) if isinstance(v, list) else v for k, v in data.items() if k in allowed}
         return replace(self, **values)
+
+
+CHARACTER_FILE = "character.json"
+
+
+def read_character_file(char_dir: str) -> Dict:
+    """캐릭터 폴더의 character.json 내용 (없으면 빈 dict). 예전 형식은 지금 형식으로 바꿔서 돌려줌.
+
+    character.json은 여기서만 읽습니다. 쓰는 곳은 pet/ui/characters.py의 write_settings 하나.
+    """
+    path = os.path.join(char_dir, CHARACTER_FILE)
+    if not os.path.isfile(path):
+        return {}
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    if "idle_lines" in data:                # 0.9 이하 형식: 혼잣말 목록만 따로 있던 것
+        data.setdefault("lines", {}).setdefault("idle", data.pop("idle_lines"))
+    return data

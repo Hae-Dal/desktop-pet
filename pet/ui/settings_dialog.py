@@ -222,9 +222,7 @@ class SettingsDialog(QDialog):
         for opt, spin in self._frame_spins.items():
             spin.setValue(int(values[opt]) * self.defaults.tick_ms)
         self.chat_chance.setValue(round(float(values["idle_chat_chance"]) * 100))
-        lines = (self._options.get(name, {}).get("lines")
-                 or _saved_lines(characters.read_settings(self._char_dir(name))))
-        self._set_lines(lines.get(LINE_SITUATION) or DEFAULT_LINES[LINE_SITUATION])
+        self._set_lines(values["lines"].get(LINE_SITUATION) or DEFAULT_LINES[LINE_SITUATION])
 
     def _store_options(self) -> None:
         """보이던 캐릭터의 옵션 칸 값을 기억 (목록을 바꾸거나 적용하기 전에 호출)."""
@@ -238,7 +236,7 @@ class SettingsDialog(QDialog):
         saved = characters.read_settings(self._char_dir(self._shown))
         changed = {k: v for k, v in values.items()
                    if saved.get(k, getattr(self.defaults, k)) != v}
-        saved_lines = _saved_lines(saved)
+        saved_lines = saved.get("lines", {})
         edited = self._edited_lines()
         if edited != list(saved_lines.get(LINE_SITUATION) or DEFAULT_LINES[LINE_SITUATION]):
             changed["lines"] = {**saved_lines, LINE_SITUATION: edited}   # 다른 상황 대사는 그대로 둠
@@ -334,9 +332,7 @@ class SettingsDialog(QDialog):
                 else:
                     characters.clear_animation(self._char_dir(name), anim)
         for name, values in self._options.items():
-            # 예전 형식 혼잣말 목록은 새 형식(lines)으로 옮겨 저장하니 지움
-            characters.write_settings(self._char_dir(name), values,
-                                      remove=["idle_lines"] if "lines" in values else [])
+            characters.write_settings(self._char_dir(name), values)
         self._files.clear()
         self._options.clear()
         prefs.set_check_updates(self.check_updates.isChecked())
@@ -352,14 +348,6 @@ class SettingsDialog(QDialog):
         for movie in self._movies:
             movie.stop()
         super().done(result)
-
-
-def _saved_lines(saved: Dict) -> Dict[str, List[str]]:
-    """character.json의 상황별 대사 (예전 형식 혼잣말 목록도 읽음)."""
-    lines = dict(saved.get("lines", {}))
-    if "idle_lines" in saved:
-        lines.setdefault("idle", saved["idle_lines"])
-    return lines
 
 
 def _fit(size: QSize) -> QSize:

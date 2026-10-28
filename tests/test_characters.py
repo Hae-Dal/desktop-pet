@@ -59,11 +59,19 @@ def test_animation_file_priority(root):
     assert characters.animation_file(str(char), "idle").endswith("idle_1.png")
 
 
-def test_write_settings_merges_and_removes(root):
+def test_write_settings_merges(root):
     char = str(root / "cat")
-    characters.write_settings(char, {"max_size": 99, "idle_lines": ["x"]})
-    characters.write_settings(char, {"faces_left": True}, remove=["idle_lines"])
+    characters.write_settings(char, {"max_size": 99})
+    characters.write_settings(char, {"faces_left": True})
     assert characters.read_settings(char) == {"max_size": 99, "faces_left": True}
+
+
+def test_saving_converts_old_format_file(root):
+    char = root / "cat"
+    (char / "character.json").write_text(json.dumps({"idle_lines": ["예전"], "speed": 3}), encoding="utf-8")
+    characters.write_settings(str(char), {"max_size": 50})
+    saved = json.loads((char / "character.json").read_text(encoding="utf-8"))
+    assert saved == {"speed": 3, "max_size": 50, "lines": {"idle": ["예전"]}}
 
 
 def test_saved_values_are_remembered(qapp):

@@ -6,7 +6,7 @@ import json
 import os
 import re
 import shutil
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, List, Optional
 
 from pet import config
 from pet.ui import prefs
@@ -94,20 +94,16 @@ def set_animation(char_dir: str, anim: str, src: str) -> None:
         f.write(data)
 
 
-def read_settings(char_dir: str) -> Dict:
-    path = os.path.join(char_dir, "character.json")
-    if not os.path.isfile(path):
-        return {}
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+read_settings = config.read_character_file
 
 
-def write_settings(char_dir: str, values: Dict, remove: Iterable[str] = ()) -> None:
-    """기존 character.json에 values를 합쳐 저장 (설정 창에 없는 값은 유지). remove의 키는 지움."""
+def write_settings(char_dir: str, values: Dict) -> None:
+    """기존 character.json에 values를 합쳐 저장 (설정 창에 없는 값은 유지).
+
+    읽을 때 예전 형식이 지금 형식으로 바뀌므로, 저장하면 파일도 지금 형식이 됨.
+    """
     data = read_settings(char_dir)
     data.update(values)
-    for key in remove:
-        data.pop(key, None)
-    with open(os.path.join(char_dir, "character.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(char_dir, config.CHARACTER_FILE), "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
         f.write("\n")
