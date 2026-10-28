@@ -102,7 +102,7 @@ class SettingsDialog(QDialog):
         # --- 일반 (캐릭터와 상관없는 설정) ---
         general_box = QGroupBox("일반")
         general = QVBoxLayout(general_box)
-        self.check_updates = QCheckBox("시작할 때 새 버전 확인")
+        self.check_updates = QCheckBox("새 버전이 나오면 알려 주기")
         self.check_updates.setChecked(updater.is_enabled())
         general.addWidget(self.check_updates)
 

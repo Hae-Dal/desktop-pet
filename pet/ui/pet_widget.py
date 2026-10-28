@@ -16,6 +16,7 @@ from pet.ui.sprites import SpriteSet
 from pet.ui.world import World
 
 UPDATE_CHECK_DELAY_MS = 5000
+UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000      # 켜 둔 동안 다시 확인하는 간격 (6시간)
 
 
 class PetWidget(QWidget):
@@ -44,8 +45,10 @@ class PetWidget(QWidget):
         self._update_url = ""
         self._updater = updater.UpdateChecker(self)
         self._updater.update_available.connect(self._on_update_available)
-        if updater.is_enabled():            # 시작 말풍선과 겹치지 않게 조금 뒤에 확인
-            QTimer.singleShot(UPDATE_CHECK_DELAY_MS, self._updater.check)
+        QTimer.singleShot(UPDATE_CHECK_DELAY_MS, self._check_update)   # 시작 말풍선과 겹치지 않게 조금 뒤에
+        self._update_timer = QTimer(self)
+        self._update_timer.timeout.connect(self._check_update)
+        self._update_timer.start(UPDATE_CHECK_INTERVAL_MS)
         if changelog.is_new_version():
             self.ctx.say(f"v{__version__}로 업데이트됐어!\n우클릭 → 업데이트 내역", 150)
 
@@ -83,7 +86,13 @@ class PetWidget(QWidget):
             self.ctx.vy = self.config.jump_power
             self.machine.change("fall")
 
+    def _check_update(self) -> None:
+        if updater.is_enabled():            # 설정 창에서 끄면 그다음 차례부터 확인 안 함
+            self._updater.check()
+
     def _on_update_available(self, version: str, url: str) -> None:
+        if version == self.new_version:     # 이미 알린 버전이면 또 말하지 않음
+            return
         self.new_version, self._update_url = version, url
         self.ctx.say(f"새 버전 v{version}이 나왔어!\n우클릭 → 새 버전 받기", 200)
 
