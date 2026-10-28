@@ -115,3 +115,33 @@ def test_idle_chat_never_when_chance_zero(world):
     for _ in range(20):
         machine.change("idle")
         assert ctx.bubble_text == ""
+
+
+def run_states(config, world, ticks=3000):
+    random.seed(7)
+    ctx = PetContext(config, world, 40, 40)
+    ctx.snap_to_ground()
+    machine = StateMachine(build_states(ctx))
+    machine.change("idle")
+    seen = []
+    for _ in range(ticks):
+        machine.update()
+        seen.append(machine.current_name)
+    return seen
+
+
+def test_character_can_turn_off_a_behavior(world):
+    no_walk = {"idle": {"walk": 0, "jump": 0}}
+    seen = run_states(PetConfig(transitions=no_walk), world)
+    assert "walk" not in seen and "jump" not in seen and "sit" in seen
+
+
+def test_sleepy_character_sleeps_more(world):
+    normal = run_states(PetConfig(), world).count("sleep")
+    sleepy = run_states(PetConfig(transitions={"idle": {"sleep": 5}, "sit": {"sleep": 5}}), world).count("sleep")
+    assert sleepy > normal * 2
+
+
+def test_all_zero_weights_keep_current_behavior(world):
+    seen = run_states(PetConfig(transitions={"idle": {"walk": 0, "sit": 0, "sleep": 0, "jump": 0}}), world, 500)
+    assert set(seen) == {"idle"}

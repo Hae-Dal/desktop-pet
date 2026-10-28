@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from typing import Dict, Optional
 
 from pet.core.context import PetContext
-from pet.core.states.transitions import pick_next
 
 
 class State(ABC):
@@ -54,11 +53,19 @@ class TimedState(State):
 
         self._remaining -= 1
         if self._remaining <= 0:
-            return pick_next(self.name)
+            return _pick(self.ctx.config.transitions_for(self.name))
         return None
 
     def act(self) -> None:
         """매 tick 하는 동작 (하위 클래스에서 구현)."""
+
+
+def _pick(weights: Dict[str, float]) -> Optional[str]:
+    """가중치대로 하나 고름 (가중치가 모두 0이거나 없으면 None = 지금 행동 계속)."""
+    names = [n for n, w in weights.items() if w > 0]
+    if not names:
+        return None
+    return random.choices(names, weights=[weights[n] for n in names])[0]
 
 
 class StateMachine:

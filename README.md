@@ -43,11 +43,25 @@ python main.py [--character 폴더이름] [--size 128]
 {
     "faces_left": true,
     "max_size": 160,
-    "frame_every": 4
+    "frame_every": 4,
+    "idle_chat_chance": 0.6,
+    "lines": {"idle": ["물범아 놀자!", "졸려..."]},
+    "transitions": {"idle": {"sleep": 3}, "sit": {"sleep": 3}}
 }
 ```
 
 `faces_left`는 이미지 속 캐릭터가 왼쪽을 보고 있을 때 `true`로 둡니다. 도트 그림은 축소하면 뭉개지므로 `max_size`를 가장 큰 이미지보다 크게 잡으세요.
+
+성격은 이 값들로 만듭니다.
+
+| 성격 | 설정 |
+|---|---|
+| 말이 많다 | `idle_chat_chance`를 크게, `lines`에 대사 추가 |
+| 잠꾸러기 | `transitions`에서 `sleep` 가중치를 크게, `sleep_ticks`를 길게 |
+| 활발하다 | `transitions`에서 `walk`·`jump`를 크게, `speed`를 빠르게 |
+| 느긋하다 | `transitions`에서 `sit`을 크게, `speed`를 느리게 |
+
+`transitions`는 "지금 행동": {"다음 행동": 가중치} 형식이고, 적은 칸만 기본값(`pet/config.py`의 `DEFAULT_TRANSITIONS`)을 덮어씁니다. 가중치를 0으로 두면 그 행동은 하지 않습니다.
 
 ## 구조
 
@@ -62,7 +76,6 @@ desktop_pet/
     │   ├── context.py         위치·속도·방향·애니메이션·말풍선 내용 (PetContext)
     │   └── states/
     │       ├── base.py        State, TimedState, StateMachine
-    │       ├── transitions.py 상태 전환 가중치 표
     │       └── idle / walk / sit / sleep / fall / drag .py
     └── ui/                    Qt에 의존하는 부분
         ├── pet_widget.py      창 설정·그리기·마우스 입력
@@ -86,8 +99,8 @@ desktop_pet/
 | 속도·크기·점프 높이·지속 시간 | `pet/config.py` |
 | 애니메이션 프레임 속도 | `pet/config.py`의 `frame_every` (기본), `walk_frame_every`, `sleep_frame_every` |
 | 혼잣말 내용·확률 | 설정 창의 혼잣말 칸, 또는 `character.json`의 `lines`, `idle_chat_chance` (기본 대사는 `pet/config.py`의 `DEFAULT_LINES`) |
-| 행동 확률 | `pet/core/states/transitions.py` |
-| 새 행동 추가 | `pet/core/states/`에 파일 추가 → `__init__.py`의 `STATE_CLASSES` 등록 → `transitions.py`에 확률 추가 → `sprites/<캐릭터>/<이름>_1.png` (자세한 방법은 `pet/core/states/__init__.py`) |
+| 행동 확률 | `pet/config.py`의 `DEFAULT_TRANSITIONS` (캐릭터별로는 `character.json`의 `transitions`) |
+| 새 행동 추가 | `pet/core/states/`에 파일 추가 → `__init__.py`의 `STATE_CLASSES` 등록 → `pet/config.py`의 `DEFAULT_TRANSITIONS`에 확률 추가 → `sprites/<캐릭터>/<이름>_1.png` (자세한 방법은 `pet/core/states/__init__.py`) |
 | 우클릭 메뉴 항목 | `pet/ui/menu.py`의 `default_items` |
 | 캐릭터 교체 | 우클릭 → 설정, 또는 `sprites/<이름>/` 폴더를 만들고 `--character <이름>` |
 | 설정 창에 보이는 동작 목록 | `pet/ui/characters.py`의 `ANIMATIONS` |

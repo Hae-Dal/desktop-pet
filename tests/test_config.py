@@ -1,7 +1,7 @@
 """설정값과 캐릭터별 설정(character.json)."""
 import json
 
-from pet.config import DEFAULT_LINES, PetConfig
+from pet.config import DEFAULT_LINES, DEFAULT_TRANSITIONS, PetConfig
 
 
 def make_character(tmp_path, data, name="cat"):
@@ -51,3 +51,10 @@ def test_new_lines_format_wins_over_old(tmp_path):
     data = {"idle_lines": ["예전"], "lines": {"idle": ["새것"]}}
     result = make_character(tmp_path, data).with_character_settings()
     assert result.lines_for("idle") == ("새것",)
+
+
+def test_transitions_override_only_given_weights(tmp_path):
+    result = make_character(tmp_path, {"transitions": {"idle": {"sleep": 3}}}).with_character_settings()
+    weights = result.transitions_for("idle")
+    assert weights["sleep"] == 3 and weights["walk"] == DEFAULT_TRANSITIONS["idle"]["walk"]
+    assert result.transitions_for("walk") == DEFAULT_TRANSITIONS["walk"]
