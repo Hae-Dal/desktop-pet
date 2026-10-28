@@ -3,7 +3,7 @@
     python build.py
 
 dist/DesktopPet-v<버전>-<OS>.zip 이 만들어집니다. 안에는 실행 파일과 빈 sprites/ 폴더가 들어갑니다.
-이스터에그 캐릭터(sprites/<EASTER_EGG>/)는 이 PC에 있으면 exe 안에 숨겨서 넣습니다 (비상업 2차 창작 조건).
+이스터에그 캐릭터(sprites/<easter_egg.NAME>/)는 이 PC에 있으면 exe 안에 숨겨서 넣습니다 (비상업 2차 창작 조건).
 그 외 캐릭터 이미지는 넣지 않습니다. 필요한 패키지: pip install -r requirements.txt pyinstaller
 """
 import os
@@ -13,7 +13,7 @@ import subprocess
 import sys
 
 from pet import __version__
-from pet.ui.characters import EASTER_EGG
+from pet.ui.easter_egg import NAME as EASTER_EGG
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 BUILD = os.path.join(ROOT, "build")

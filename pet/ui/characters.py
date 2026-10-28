@@ -1,4 +1,4 @@
-"""캐릭터 폴더 관리: 목록, 동작별 이미지 넣기·지우기, character.json, 사용 중인 캐릭터.
+"""캐릭터 폴더 관리: 목록, 동작별 이미지 넣기·지우기, character.json 저장.
 
 설정 창이 쓰는 파일 작업을 모아 두었습니다. 이미지 파일 이름 규칙은 sprites.py와 같습니다.
 """
@@ -9,7 +9,7 @@ import shutil
 from typing import Dict, List, Optional
 
 from pet import config
-from pet.ui import prefs
+from pet.ui import easter_egg, prefs
 from pet.ui.sprites import scan_directory
 
 # 설정 창에 보여 줄 동작 (이미지 이름, 표시 이름). 순서대로 표시됨
@@ -22,9 +22,6 @@ ANIMATIONS = [
     ("drag", "잡혔을 때"),
 ]
 
-# 이스터에그: 펫을 빠르게 연타하면 나타나는 숨은 캐릭터. 찾기 전에는 설정 창 목록에 안 보임
-EASTER_EGG = "seal_girl"
-
 _INVALID_NAME = re.compile(r'[\\/:*?"<>|]|^\.|^$')
 
 
@@ -32,25 +29,13 @@ def list_characters(root: str) -> List[str]:
     """설정 창에 보여 줄 캐릭터 (찾지 않은 이스터에그 캐릭터는 뺌)."""
     if not os.path.isdir(root):
         return []
-    hidden = set() if prefs.easter_egg_unlocked() else {EASTER_EGG}
+    hidden = set() if prefs.easter_egg_unlocked() else {easter_egg.NAME}
     return sorted(n for n in os.listdir(root)
                   if os.path.isdir(os.path.join(root, n)) and n not in hidden)
 
 
 def exists(root: str, name: str) -> bool:
     return os.path.isdir(os.path.join(root, name))
-
-
-def has_images(root: str, name: str) -> bool:
-    """sprites/ 또는 exe 안에 숨겨 둔 곳에 그 캐릭터 이미지가 있는지."""
-    return any(scan_directory(os.path.join(base, name)) for base in (root, config.BUNDLED_SPRITES_DIR))
-
-
-def install_bundled(root: str, name: str) -> None:
-    """exe 안에 숨겨 둔 캐릭터를 sprites/로 꺼냄 (이미 있으면 그대로)."""
-    src = os.path.join(config.BUNDLED_SPRITES_DIR, name)
-    if not exists(root, name) and os.path.isdir(src):
-        shutil.copytree(src, os.path.join(root, name))
 
 
 def is_valid_name(name: str) -> bool:

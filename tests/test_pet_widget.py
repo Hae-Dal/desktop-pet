@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QApplication
 
 from pet import config as config_module
 from pet.config import PetConfig
-from pet.ui import characters, menu, pet_widget, prefs
+from pet.ui import easter_egg, menu, pet_widget, prefs
 from pet.ui.sprites import SpriteSet
 from pet.ui.world import World
 
@@ -43,7 +43,7 @@ def test_starts_on_the_ground(make_pet):
 def test_click_jumps(make_pet):
     pet = make_pet()
     QTest.mouseClick(pet, Qt.LeftButton, pos=QPoint(10, 10))
-    assert pet.machine.current_name == "fall" and pet.ctx.vy < 0
+    assert pet.machine.current_name == "jump" and pet.ctx.vy < 0
 
 
 def test_menu_jump(make_pet):
@@ -85,7 +85,7 @@ def test_drag_moves_then_falls(make_pet):
 def test_update_menu_item_only_when_new_version(make_pet):
     pet = make_pet()
     assert not any("새 버전" in i.label for i in menu.default_items(pet))
-    pet._on_update_available("9.9.9", "http://x")
+    pet.updates._on_available("9.9.9", "http://x")
     assert any(i.label == "새 버전 받기 (v9.9.9)" for i in menu.default_items(pet))
 
 
@@ -103,7 +103,7 @@ def test_change_character_resizes(make_pet, tmp_path):
 def bundled_egg(tmp_path, monkeypatch):
     """exe 안에 숨겨 둔 이스터에그 캐릭터 흉내."""
     bundled = tmp_path / "bundled"
-    egg = bundled / characters.EASTER_EGG
+    egg = bundled / easter_egg.NAME
     egg.mkdir(parents=True)
     pix = QPixmap(20, 20)
     pix.fill(QColor("gray"))
@@ -120,9 +120,9 @@ def test_easter_egg_after_fast_clicks(make_pet, bundled_egg, monkeypatch):
         QTest.mouseClick(pet, Qt.LeftButton, pos=QPoint(5, 5))
     assert pet.config.character == "default"
     QTest.mouseClick(pet, Qt.LeftButton, pos=QPoint(5, 5))
-    assert pet.config.character == characters.EASTER_EGG
-    assert prefs.easter_egg_unlocked() and prefs.active_character() == characters.EASTER_EGG
-    assert (bundled_egg / characters.EASTER_EGG / "idle.png").exists()      # sprites/로 꺼내 둠
+    assert pet.config.character == easter_egg.NAME
+    assert prefs.easter_egg_unlocked() and prefs.active_character() == easter_egg.NAME
+    assert (bundled_egg / easter_egg.NAME / "idle.png").exists()      # sprites/로 꺼내 둠
 
 
 def test_slow_clicks_do_not_find_easter_egg(make_pet, bundled_egg, monkeypatch):

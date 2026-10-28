@@ -5,7 +5,7 @@ import pytest
 from PyQt5.QtGui import QColor, QPixmap
 
 from pet.config import PetConfig
-from pet.ui import characters, prefs
+from pet.ui import characters, easter_egg, prefs
 from pet.ui.sprites import SpriteSet, scan_directory
 
 
@@ -18,7 +18,7 @@ def png(path, w=10, h=10):
 
 @pytest.fixture
 def root(tmp_path, qapp):
-    for name in ("cat", characters.EASTER_EGG):
+    for name in ("cat", easter_egg.NAME):
         (tmp_path / name).mkdir()
     return tmp_path
 
@@ -26,7 +26,7 @@ def root(tmp_path, qapp):
 def test_easter_egg_hidden_until_found(root):
     assert characters.list_characters(str(root)) == ["cat"]
     prefs.unlock_easter_egg()
-    assert characters.list_characters(str(root)) == sorted(["cat", characters.EASTER_EGG])
+    assert characters.list_characters(str(root)) == sorted(["cat", easter_egg.NAME])
 
 
 def test_create_and_delete(root):

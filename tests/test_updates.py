@@ -85,18 +85,18 @@ def test_running_pet_checks_again_and_does_not_repeat(qapp, github, monkeypatch)
     from pet.ui import pet_widget
     from pet.ui.sprites import SpriteSet
     from pet.ui.world import World
-    monkeypatch.setattr(pet_widget, "UPDATE_CHECK_DELAY_MS", 50)
-    monkeypatch.setattr(pet_widget, "UPDATE_CHECK_INTERVAL_MS", 300)
+    monkeypatch.setattr(updater, "START_DELAY_MS", 50)
+    monkeypatch.setattr(updater, "INTERVAL_MS", 300)
     pet = pet_widget.PetWidget(PetConfig(), SpriteSet({}), World())
     notices = []
     say = pet.ctx.say
     monkeypatch.setattr(pet.ctx, "say", lambda t, n=90: (notices.append(t) if "새 버전" in t else None, say(t, n)))
 
     wait(800)                                   # 시작 확인 + 다시 확인 2번 정도
-    assert github.hits >= 2 and len(notices) == 1 and pet.new_version == "99.0.0"
+    assert github.hits >= 2 and len(notices) == 1 and pet.updates.version == "99.0.0"
     github.tag = "v99.1.0"
     wait(400)
-    assert len(notices) == 2 and pet.new_version == "99.1.0"
+    assert len(notices) == 2 and pet.updates.version == "99.1.0"
     prefs.set_check_updates(False)
     hits = github.hits
     wait(400)
