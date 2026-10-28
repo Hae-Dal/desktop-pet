@@ -12,7 +12,7 @@ from pet.core.context import PetContext
 from pet.core.states import StateMachine, TimedState, build_states
 from pet.ui import changelog, easter_egg, menu, topmost, updater
 from pet.ui.bubble import BubbleWidget
-from pet.ui.settings_dialog import SettingsDialog
+from pet.ui.settings import SettingsDialog
 from pet.ui.sprites import SpriteSet
 from pet.ui.world import World
 

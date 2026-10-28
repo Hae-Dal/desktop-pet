@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QCheckBox, QListWidget, QPushButton, QSpinBox
 
 from pet.config import DEFAULT_LINES, PetConfig
 from pet.ui import prefs
-from pet.ui.settings_dialog import SettingsDialog
+from pet.ui.settings import SettingsDialog
 
 
 class Dialog:

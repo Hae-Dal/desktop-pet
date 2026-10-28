@@ -68,24 +68,31 @@ python main.py [--character 폴더이름] [--size 128]
 ```
 desktop_pet/
 ├── main.py                    진입점 (인자 처리, 객체 조립)
-├── requirements.txt           의존 패키지 (PyQt5)
+├── build.py                   배포 파일 만들기
+├── requirements.txt           실행에 필요한 패키지 (PyQt5)
+├── requirements-dev.txt       개발용 (테스트, 빌드)
+├── tests/                     자동 테스트
 ├── sprites/<캐릭터>/          캐릭터 이미지 (파일 이름 규칙은 sprites/default/README.txt)
 └── pet/
-    ├── config.py              크기·속도·중력·지속 시간·혼잣말 등 모든 설정값
+    ├── config.py              모든 기본값 (크기·속도·지속 시간·기본 대사·행동 확률), character.json 읽기
     ├── core/                  Qt를 모르는 로직 (PyQt5 import 금지)
     │   ├── context.py         위치·속도·방향·애니메이션·말풍선 내용 (PetContext)
     │   └── states/
     │       ├── base.py        State, TimedState, StateMachine
-    │       └── idle / walk / sit / sleep / fall / drag .py
+    │       └── idle / walk / sit / sleep / fall / jump / drag .py
     └── ui/                    Qt에 의존하는 부분
-        ├── pet_widget.py      창 설정·그리기·마우스 입력
+        ├── pet_widget.py      펫 창: 그리기·마우스 입력
         ├── bubble.py          말풍선 (펫을 따라다니는 별도 투명 창)
-        ├── characters.py      캐릭터 폴더 관리 (목록, 이미지 넣기·지우기, character.json, 사용 중인 캐릭터)
-        ├── changelog.py       업데이트 내역 창 (CHANGELOG.md 표시), 새 버전 첫 실행 확인
         ├── menu.py            우클릭 메뉴 항목 목록
-        ├── settings_dialog.py 설정 창 (캐릭터 선택, 이미지, 옵션)
+        ├── settings/          설정 창 (캐릭터 목록, 이미지·옵션·혼잣말 칸)
+        ├── characters.py      캐릭터 폴더 관리 (목록, 이미지 넣기·지우기, character.json 저장)
+        ├── easter_egg.py      이스터에그 (연타 판정, 숨은 캐릭터 꺼내기)
+        ├── prefs.py           앱이 기억하는 값 (마지막 캐릭터, 새 버전 확인 켜기 등)
+        ├── changelog.py       업데이트 내역 창, 새 버전 첫 실행 확인
+        ├── updater.py         새 버전 확인 (GitHub Releases와 비교, 켜 둔 동안 주기적으로, 알림만)
+        ├── topmost.py         다른 창 뒤로 숨지 않게 항상 위 다시 걸기
         ├── single_instance.py 중복 실행 방지 (이미 실행 중이면 그 펫이 인사하고 종료)
-        ├── updater.py         새 버전 확인 (GitHub Releases 최신 버전과 비교, 알림만)
+        ├── errorlog.py        처리 안 된 오류를 error.log에 기록
         ├── sprites.py         이미지 로딩, 좌우 반전, 임시 도형 대체
         └── world.py           화면 경계·바닥 좌표 (모니터 정보는 실행 중에 읽어 옴)
 ```
@@ -104,23 +111,33 @@ desktop_pet/
 | 우클릭 메뉴 항목 | `pet/ui/menu.py`의 `default_items` |
 | 캐릭터 교체 | 우클릭 → 설정, 또는 `sprites/<이름>/` 폴더를 만들고 `--character <이름>` |
 | 설정 창에 보이는 동작 목록 | `pet/ui/characters.py`의 `ANIMATIONS` |
-| 이스터에그 캐릭터 | `pet/ui/characters.py`의 `EASTER_EGG` (찾기 전에는 설정 창에 안 보임) |
+| 이스터에그 캐릭터 | `pet/ui/easter_egg.py`의 `NAME` (찾기 전에는 설정 창에 안 보임) |
 | 이스터에그 조건 (연타 횟수·시간) | `pet/config.py`의 `easter_egg_clicks`, `easter_egg_seconds` |
 
 ## 배포 파일 만들기
 
 ```
-pip install -r requirements.txt pyinstaller
+pip install -r requirements-dev.txt
 python build.py
 ```
 
-`dist/DesktopPet-v<버전>-windows.zip`이 만들어집니다. 안에는 실행 파일(`DesktopPet.exe`)과 빈 `sprites/` 폴더만 있고,
+`dist/DesktopPet-v<버전>-windows.zip`이 만들어집니다.
+이스터에그 캐릭터 폴더는 이 PC에 있는 그대로 exe에 들어가므로, 테스트하며 바꾼 값이 있으면 빌드가 경고합니다. 안에는 실행 파일(`DesktopPet.exe`)과 빈 `sprites/` 폴더만 있고,
 캐릭터 이미지는 넣지 않습니다. 받은 사람은 zip을 풀고 exe를 실행하면 되며, Python 설치는 필요 없습니다.
 캐릭터 이미지는 exe 옆 `sprites/` 폴더에 넣거나 설정 창으로 넣습니다.
 
 GitHub에 올리려면 저장소의 Releases → "Draft a new release"에서 태그(예: `v0.6.0`)를 고르고 zip을 첨부합니다.
 앱은 시작할 때 GitHub Releases의 최신 릴리스 태그를 확인해 지금 버전보다 새로우면 알려 줍니다
 (설정 창에서 끌 수 있음). 그래서 릴리스 태그는 `v주.부.수` 형식이어야 합니다.
+
+## 테스트
+
+```
+pip install -r requirements-dev.txt
+python -m pytest
+```
+
+화면 없이 돌아가며, 실제 저장값(마지막 캐릭터 등)은 건드리지 않습니다. 구조를 바꾸거나 기능을 고친 뒤 커밋 전에 돌립니다.
 
 ## 오류가 났을 때
 

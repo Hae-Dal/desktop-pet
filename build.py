@@ -26,6 +26,10 @@ def main() -> int:
     bundled = []
     if os.path.isdir(egg):
         bundled = ["--add-data", egg + os.pathsep + os.path.join("bundled_sprites", EASTER_EGG)]
+        changed = subprocess.run(["git", "status", "--porcelain", "--", egg], cwd=ROOT,
+                                 capture_output=True, text=True).stdout.strip()
+        if changed:     # 테스트하며 바꾼 대사·설정이 배포 파일에 그대로 들어가지 않게
+            print(f"경고: {egg} 에 커밋 안 된 변경이 있어 그대로 exe에 들어갑니다:\n{changed}")
     else:
         print(f"경고: {egg} 가 없어 이스터에그 캐릭터 없이 빌드합니다.")
 
