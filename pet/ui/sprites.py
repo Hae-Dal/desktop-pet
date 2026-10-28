@@ -128,6 +128,8 @@ class SpriteSet:
             name: _load_animation(files, config.max_size)
             for name, files in _scan(config.character_dir).items()
         }
+        if config.faces_left:               # 오른쪽 보는 이미지 기준으로 맞춤
+            animations = {name: [_flip(p) for p in frames] for name, frames in animations.items()}
         return cls(animations)
 
     def has(self, name: str) -> bool:

@@ -1,0 +1,7 @@
+{
+    "faces_left": true,
+    "max_size": 160,
+    "frame_every": 4,
+    "walk_frame_every": 4,
+    "sleep_frame_every": 4
+}

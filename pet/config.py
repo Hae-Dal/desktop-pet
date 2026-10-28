@@ -1,6 +1,8 @@
 """설정값 모음. 숫자를 바꾸고 싶으면 이 파일만 보면 됩니다."""
+import json
 import os
-from dataclasses import dataclass
+import sys
+from dataclasses import dataclass, fields, replace
 from typing import Tuple
 
 # 프로젝트 루트 (main.py가 있는 폴더). 이 파일은 pet/ 안에 있으므로 한 단계 위.
@@ -10,9 +12,10 @@ PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 @dataclass
 class PetConfig:
     # --- 캐릭터 ---
-    character: str = "default"                      # sprites/<character>/ 폴더 이름
+    character: str = "seal_girl"                    # sprites/<character>/ 폴더 이름
     sprites_root: str = os.path.join(PROJECT_DIR, "sprites")
     max_size: int = 128                             # 캐릭터 최대 크기(px), 넘으면 축소
+    faces_left: bool = False                        # 이미지 속 캐릭터가 왼쪽을 보고 있으면 True
 
     # --- 루프 ---
     tick_ms: int = 30                               # 갱신 주기(ms)
@@ -41,3 +44,20 @@ class PetConfig:
     @property
     def character_dir(self) -> str:
         return os.path.join(self.sprites_root, self.character)
+
+    def with_character_settings(self) -> "PetConfig":
+        """캐릭터 폴더의 character.json 값으로 덮어쓴 설정을 돌려줌 (파일이 없으면 그대로).
+
+        예: {"faces_left": true, "max_size": 160, "frame_every": 4}
+        """
+        path = os.path.join(self.character_dir, "character.json")
+        if not os.path.isfile(path):
+            return self
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        allowed = {f.name for f in fields(self)} - {"character", "sprites_root"}
+        unknown = set(data) - allowed
+        if unknown:
+            print(f"{path}: 모르는 설정 무시 {sorted(unknown)}", file=sys.stderr)
+        values = {k: tuple(v) if isinstance(v, list) else v for k, v in data.items() if k in allowed}
+        return replace(self, **values)

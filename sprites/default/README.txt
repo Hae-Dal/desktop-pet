@@ -20,4 +20,7 @@
     python main.py --character mychar
 로 실행하세요.
 
+캐릭터별 설정(왼쪽을 보는 이미지, 크기, 애니메이션 속도)은 character.json에 적습니다.
+프로젝트 README.md의 "캐릭터 이미지" 항목을 보세요.
+
 이 폴더가 비어 있으면 임시 도형 캐릭터로 실행됩니다. 이 README.txt는 무시됩니다.

@@ -4,3 +4,7 @@ __pycache__/
 venv/
 .vscode/
 .idea/
+
+# 캐릭터 이미지는 저작권 때문에 올리지 않음 (각자 sprites/<캐릭터>/에 넣어서 사용)
+sprites/**/*.png
+sprites/**/*.gif

@@ -14,8 +14,8 @@ python main.py [--character 폴더이름] [--size 128]
 
 | 인자 | 설명 | 기본값 |
 |---|---|---|
-| `--character` | `sprites/` 아래 캐릭터 폴더 이름 | `default` |
-| `--size` | 캐릭터 최대 크기(px). 더 큰 이미지는 축소 | `128` |
+| `--character` | `sprites/` 아래 캐릭터 폴더 이름 | `seal_girl` |
+| `--size` | 캐릭터 최대 크기(px). 더 큰 이미지는 축소 | 캐릭터의 `character.json`, 없으면 `128` |
 
 ## 조작
 
@@ -29,6 +29,21 @@ python main.py [--character 폴더이름] [--size 128]
 
 `sprites/<캐릭터>/` 폴더에 `walk_1.png`, `walk_2.png`, `idle.png`, `sleep.gif` 같은 이름으로 넣으면
 자동으로 인식합니다. 자세한 파일 이름 규칙은 [sprites/default/README.txt](sprites/default/README.txt)를 보세요.
+
+캐릭터 이미지(`sprites/` 아래 .png, .gif)는 저작권 때문에 저장소에 올리지 않습니다 (`.gitignore`).
+새로 받은 PC에서는 이미지를 직접 넣어야 하며, 없으면 임시 도형 캐릭터로 실행됩니다.
+
+캐릭터마다 다른 설정은 같은 폴더의 `character.json`에 적습니다. `pet/config.py`의 설정 이름을 그대로 쓰며, 적은 값만 바뀝니다.
+
+```json
+{
+    "faces_left": true,
+    "max_size": 160,
+    "frame_every": 4
+}
+```
+
+`faces_left`는 이미지 속 캐릭터가 왼쪽을 보고 있을 때 `true`로 둡니다. 도트 그림은 축소하면 뭉개지므로 `max_size`를 가장 큰 이미지보다 크게 잡으세요.
 
 ## 구조
 
