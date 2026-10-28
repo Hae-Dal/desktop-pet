@@ -119,7 +119,7 @@ class PetWidget(QWidget):
 
     def change_character(self, name: str) -> None:
         """설정 창에서 적용: 이미지와 캐릭터별 설정을 다시 읽어 바로 바꿈."""
-        config = PetConfig(character=name).with_character_settings()
+        config = PetConfig(character=name, sprites_root=self.config.sprites_root).with_character_settings()
         self.config = config
         self.sprites = SpriteSet.load(config)
         self.ctx.config = config
