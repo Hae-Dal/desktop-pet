@@ -50,6 +50,9 @@ def main() -> int:
     app = QApplication(sys.argv)          # QPixmap 생성보다 먼저 만들어야 함
     app.setOrganizationName("desktop_pet")
     app.setApplicationName("desktop_pet")
+    # 펫은 Tool 창이라 Qt가 '창'으로 세지 않음. 그대로 두면 설정·업데이트 내역 창을 닫는 순간
+    # 마지막 창이 닫혔다고 보고 앱이 꺼짐. 종료는 우클릭 메뉴(또는 Ctrl+C)로만.
+    app.setQuitOnLastWindowClosed(False)
     errorlog.install()                    # 오류가 나도 꺼지지 않고 error.log에 기록
     instance = SingleInstance()
     if not instance.acquire():            # 이미 실행 중이면 그 펫이 대신 인사하고 여기선 종료
