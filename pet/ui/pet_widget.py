@@ -173,6 +173,7 @@ class PetWidget(QWidget):
         name = characters.EASTER_EGG
         if self.config.character == name or not characters.has_images(self.config.sprites_root, name):
             return                                       # 이미 그 캐릭터거나, 이미지가 없는 PC
+        characters.install_bundled(self.config.sprites_root, name)
         characters.unlock_easter_egg()
         characters.set_active_character(name)
         self.change_character(name)
