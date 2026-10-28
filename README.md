@@ -70,6 +70,7 @@ desktop_pet/
         ├── menu.py            우클릭 메뉴 항목 목록
         ├── settings_dialog.py 설정 창 (캐릭터 선택, 이미지, 옵션)
         ├── single_instance.py 중복 실행 방지 (이미 실행 중이면 그 펫이 인사하고 종료)
+        ├── updater.py         새 버전 확인 (GitHub Releases 최신 버전과 비교, 알림만)
         ├── sprites.py         이미지 로딩, 좌우 반전, 임시 도형 대체
         └── world.py           화면 경계·바닥 좌표 (모니터 정보는 실행 중에 읽어 옴)
 ```
@@ -103,6 +104,8 @@ python build.py
 캐릭터 이미지는 exe 옆 `sprites/` 폴더에 넣거나 설정 창으로 넣습니다.
 
 GitHub에 올리려면 저장소의 Releases → "Draft a new release"에서 태그(예: `v0.6.0`)를 고르고 zip을 첨부합니다.
+앱은 시작할 때 GitHub Releases의 최신 릴리스 태그를 확인해 지금 버전보다 새로우면 알려 줍니다
+(설정 창에서 끌 수 있음). 그래서 릴리스 태그는 `v주.부.수` 형식이어야 합니다.
 
 ## 오류가 났을 때
 

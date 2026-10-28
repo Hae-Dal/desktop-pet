@@ -1,19 +1,21 @@
 """창 설정, 그리기, 마우스 입력만 담당합니다. 행동 판단은 pet/core/states가 합니다."""
 import time
 
-from PyQt5.QtCore import QPoint, Qt, QTimer
-from PyQt5.QtGui import QPainter
+from PyQt5.QtCore import QPoint, Qt, QTimer, QUrl
+from PyQt5.QtGui import QDesktopServices, QPainter
 from PyQt5.QtWidgets import QApplication, QWidget
 
 from pet import __version__
 from pet.config import PetConfig
 from pet.core.context import PetContext
 from pet.core.states import StateMachine, TimedState, build_states
-from pet.ui import changelog, characters, menu
+from pet.ui import changelog, characters, menu, updater
 from pet.ui.bubble import BubbleWidget
 from pet.ui.settings_dialog import SettingsDialog
 from pet.ui.sprites import SpriteSet
 from pet.ui.world import World
+
+UPDATE_CHECK_DELAY_MS = 5000
 
 
 class PetWidget(QWidget):
@@ -37,6 +39,13 @@ class PetWidget(QWidget):
         self.bubble = BubbleWidget()
         self._changelog = None
         self._settings = None
+
+        self.new_version = ""               # 새 버전이 있으면 "0.8.0" (우클릭 메뉴에 받기 항목이 생김)
+        self._update_url = ""
+        self._updater = updater.UpdateChecker(self)
+        self._updater.update_available.connect(self._on_update_available)
+        if updater.is_enabled():            # 시작 말풍선과 겹치지 않게 조금 뒤에 확인
+            QTimer.singleShot(UPDATE_CHECK_DELAY_MS, self._updater.check)
         if changelog.is_new_version():
             self.ctx.say(f"v{__version__}로 업데이트됐어!\n우클릭 → 업데이트 내역", 150)
 
@@ -73,6 +82,13 @@ class PetWidget(QWidget):
         if isinstance(self.machine.current, TimedState) and self.ctx.on_ground:
             self.ctx.vy = self.config.jump_power
             self.machine.change("fall")
+
+    def _on_update_available(self, version: str, url: str) -> None:
+        self.new_version, self._update_url = version, url
+        self.ctx.say(f"새 버전 v{version}이 나왔어!\n우클릭 → 새 버전 받기", 200)
+
+    def open_update_page(self) -> None:
+        QDesktopServices.openUrl(QUrl(self._update_url))
 
     def greet(self) -> None:
         """프로그램을 또 실행하려고 했을 때: 이미 여기 있다고 알림."""
