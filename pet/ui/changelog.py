@@ -11,8 +11,9 @@ from PyQt5.QtCore import QSettings, Qt
 from PyQt5.QtWidgets import QDialog, QTextBrowser, QVBoxLayout
 
 from pet import __version__
+from pet.config import BUNDLE_DIR
 
-CHANGELOG_PATH = Path(__file__).resolve().parents[2] / "CHANGELOG.md"
+CHANGELOG_PATH = Path(BUNDLE_DIR) / "CHANGELOG.md"
 _SEEN_KEY = "last_seen_version"
 
 
