@@ -26,7 +26,7 @@ from pet.config import PetConfig
 _FILE_RE = re.compile(r"^([a-z]+(?:_[a-z]+)*)(?:_(\d+))?\.(png|gif)$", re.IGNORECASE)
 
 
-class _SpriteFile(NamedTuple):
+class SpriteFile(NamedTuple):
     number: Optional[int]       # walk_3.png -> 3, idle.png -> None
     ext: str                    # "png" / "gif"
     path: str
@@ -42,21 +42,21 @@ def _flip(pix: QPixmap) -> QPixmap:
     return pix.transformed(QTransform().scale(-1, 1))
 
 
-def _scan(directory: str) -> Dict[str, List[_SpriteFile]]:
+def scan_directory(directory: str) -> Dict[str, List[SpriteFile]]:
     """폴더 안의 이미지 파일을 애니메이션 이름(소문자)별로 묶음."""
     if not os.path.isdir(directory):
         return {}
-    found: Dict[str, List[_SpriteFile]] = {}
+    found: Dict[str, List[SpriteFile]] = {}
     for filename in os.listdir(directory):
         m = _FILE_RE.match(filename)
         if m:
             name, number, ext = m.groups()
-            found.setdefault(name.lower(), []).append(_SpriteFile(
+            found.setdefault(name.lower(), []).append(SpriteFile(
                 int(number) if number else None, ext.lower(), os.path.join(directory, filename)))
     return found
 
 
-def _load_animation(files: List[_SpriteFile], max_size: int) -> List[QPixmap]:
+def _load_animation(files: List[SpriteFile], max_size: int) -> List[QPixmap]:
     """우선순위: 번호 붙은 파일들(_1, _2, ...) > <이름>.png > <이름>.gif의 모든 프레임."""
     frames: List[QPixmap] = []
 
@@ -126,7 +126,7 @@ class SpriteSet:
     def load(cls, config: PetConfig) -> "SpriteSet":
         animations = {
             name: _load_animation(files, config.max_size)
-            for name, files in _scan(config.character_dir).items()
+            for name, files in scan_directory(config.character_dir).items()
         }
         if config.faces_left:               # 오른쪽 보는 이미지 기준으로 맞춤
             animations = {name: [_flip(p) for p in frames] for name, frames in animations.items()}

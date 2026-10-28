@@ -9,6 +9,7 @@ from pet.core.context import PetContext
 from pet.core.states import StateMachine, TimedState, build_states
 from pet.ui import changelog, menu
 from pet.ui.bubble import BubbleWidget
+from pet.ui.settings_dialog import SettingsDialog
 from pet.ui.sprites import SpriteSet
 from pet.ui.world import World
 
@@ -33,6 +34,7 @@ class PetWidget(QWidget):
 
         self.bubble = BubbleWidget()
         self._changelog = None
+        self._settings = None
         if changelog.is_new_version():
             self.ctx.say(f"v{__version__}로 업데이트됐어!\n우클릭 → 업데이트 내역", 150)
 
@@ -68,6 +70,26 @@ class PetWidget(QWidget):
         if isinstance(self.machine.current, TimedState) and self.ctx.on_ground:
             self.ctx.vy = self.config.jump_power
             self.machine.change("fall")
+
+    def show_settings(self) -> None:
+        if self._settings is None or not self._settings.isVisible():
+            self._settings = SettingsDialog(self.config.sprites_root, self.config.character,
+                                            self.change_character)
+        self._settings.show()
+        self._settings.raise_()
+        self._settings.activateWindow()
+
+    def change_character(self, name: str) -> None:
+        """설정 창에서 적용: 이미지와 캐릭터별 설정을 다시 읽어 바로 바꿈."""
+        config = PetConfig(character=name).with_character_settings()
+        self.config = config
+        self.sprites = SpriteSet.load(config)
+        self.ctx.config = config
+        self.ctx.width, self.ctx.height = self.sprites.size
+        self.resize(*self.sprites.size)
+        self.machine = StateMachine(build_states(self.ctx))    # 상태들이 설정값을 미리 읽어 두므로 새로 만듦
+        self.machine.change("fall")                            # 크기가 바뀌었으니 바닥으로
+        self.update()
 
     def show_changelog(self) -> None:
         if self._changelog is None:

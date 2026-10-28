@@ -16,6 +16,7 @@ def default_items(pet) -> List[MenuItem]:
     """기본 메뉴 항목. 항목을 늘리려면 여기에 MenuItem을 추가하세요."""
     return [
         MenuItem("점프", pet.jump),
+        MenuItem("설정...", pet.show_settings),
         MenuItem("업데이트 내역", pet.show_changelog),
         MenuItem("종료", QApplication.quit),
     ]
