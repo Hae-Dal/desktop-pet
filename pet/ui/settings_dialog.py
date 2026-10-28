@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import (
 )
 
 from pet.config import PetConfig
-from pet.ui import characters
+from pet.ui import characters, updater
 
 PREVIEW = 64           # 미리보기 칸 크기(px)
 IMAGE_FILTER = "이미지 (*.png *.gif)"
@@ -99,9 +99,17 @@ class SettingsDialog(QDialog):
             form.addRow(label + ":", spin)
             self._frame_spins[name] = spin
 
+        # --- 일반 (캐릭터와 상관없는 설정) ---
+        general_box = QGroupBox("일반")
+        general = QVBoxLayout(general_box)
+        self.check_updates = QCheckBox("시작할 때 새 버전 확인")
+        self.check_updates.setChecked(updater.is_enabled())
+        general.addWidget(self.check_updates)
+
         right = QVBoxLayout()
         right.addWidget(image_box)
         right.addWidget(option_box)
+        right.addWidget(general_box)
         body = QHBoxLayout()
         body.addWidget(char_box, 1)
         body.addLayout(right, 2)
@@ -262,6 +270,7 @@ class SettingsDialog(QDialog):
             characters.write_settings(self._char_dir(name), values)
         self._files.clear()
         self._options.clear()
+        updater.set_enabled(self.check_updates.isChecked())
         if self._shown:
             characters.set_active_character(self._shown)
             self.on_apply(self._shown)

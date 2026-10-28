@@ -6,4 +6,4 @@
 
 의존 방향은 ui -> core 한쪽뿐입니다.
 """
-__version__ = "0.7.0"      # 바꿀 때 CHANGELOG.md와 git 태그(v0.7.0)도 함께
+__version__ = "0.8.0"      # 바꿀 때 CHANGELOG.md와 git 태그(v0.8.0)도 함께
