@@ -6,7 +6,7 @@ import json
 import os
 import re
 import shutil
-from typing import Dict, List, Optional
+from typing import Dict, Iterable, List, Optional
 
 from PyQt5.QtCore import QSettings
 
@@ -113,10 +113,12 @@ def read_settings(char_dir: str) -> Dict:
         return json.load(f)
 
 
-def write_settings(char_dir: str, values: Dict) -> None:
-    """기존 character.json에 values를 합쳐 저장 (설정 창에 없는 값은 유지)."""
+def write_settings(char_dir: str, values: Dict, remove: Iterable[str] = ()) -> None:
+    """기존 character.json에 values를 합쳐 저장 (설정 창에 없는 값은 유지). remove의 키는 지움."""
     data = read_settings(char_dir)
     data.update(values)
+    for key in remove:
+        data.pop(key, None)
     with open(os.path.join(char_dir, "character.json"), "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
         f.write("\n")

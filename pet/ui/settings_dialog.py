@@ -1,21 +1,21 @@
-"""설정 창: 캐릭터 고르기, 동작별 이미지 넣기, 캐릭터별 옵션.
+"""설정 창: 캐릭터 고르기, 동작별 이미지 넣기, 캐릭터별 옵션과 대사.
 
 바꾼 내용은 [적용]/[확인]을 누를 때 한꺼번에 파일에 쓰고, [취소]하면 버립니다.
 (캐릭터 새로 만들기·삭제만 누르는 즉시 반영)
 """
 import os
 from dataclasses import fields
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, List, Optional
 
 from PyQt5.QtCore import QBuffer, QByteArray, QSize, Qt
 from PyQt5.QtGui import QImageReader, QMovie, QPixmap
 from PyQt5.QtWidgets import (
     QCheckBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QFrame, QGridLayout,
-    QGroupBox, QHBoxLayout, QInputDialog, QLabel, QListWidget, QMessageBox, QPushButton,
+    QGroupBox, QHBoxLayout, QInputDialog, QLabel, QListWidget, QListWidgetItem, QMessageBox, QPushButton,
     QSpinBox, QVBoxLayout,
 )
 
-from pet.config import PetConfig
+from pet.config import DEFAULT_LINES, PetConfig
 from pet.ui import characters, updater
 
 PREVIEW = 64           # 미리보기 칸 크기(px)
@@ -27,6 +27,9 @@ FRAME_OPTIONS = [
     ("walk_frame_every", "걷기 프레임 간격"),
     ("sleep_frame_every", "잠자기 프레임 간격"),
 ]
+
+# 대사 칸에서 고칠 수 있는 상황. 나중에 상황을 늘리면 고를 수 있게 하면 됨
+LINE_SITUATION = "idle"
 
 
 class SettingsDialog(QDialog):
@@ -56,6 +59,30 @@ class SettingsDialog(QDialog):
         char_layout = QVBoxLayout(char_box)
         char_layout.addWidget(self.list)
         char_layout.addLayout(char_buttons)
+
+        # --- 대사 (혼잣말) ---
+        lines_box = QGroupBox("혼잣말")
+        lines_layout = QVBoxLayout(lines_box)
+        self.lines = QListWidget()
+        add_line = QPushButton("추가")
+        add_line.clicked.connect(self._add_line)
+        self.remove_line = QPushButton("삭제")
+        self.remove_line.clicked.connect(self._remove_line)
+        line_buttons = QHBoxLayout()
+        line_buttons.addWidget(add_line)
+        line_buttons.addWidget(self.remove_line)
+        self.chat_chance = QSpinBox()
+        self.chat_chance.setRange(0, 100)
+        self.chat_chance.setSuffix(" %")
+        chance_row = QFormLayout()
+        chance_row.addRow("말할 확률:", self.chat_chance)
+        lines_note = QLabel("두 번 클릭하면 고칠 수 있어요.\n모두 지우면 기본 대사로 돌아갑니다.")
+        lines_note.setEnabled(False)
+        lines_layout.addWidget(self.lines)
+        lines_layout.addLayout(line_buttons)
+        lines_layout.addLayout(chance_row)
+        lines_layout.addWidget(lines_note)
+        self._line_widgets = [self.lines, add_line, self.remove_line, self.chat_chance]
 
         # --- 이미지 ---
         image_box = QGroupBox("이미지")
@@ -110,8 +137,11 @@ class SettingsDialog(QDialog):
         right.addWidget(image_box)
         right.addWidget(option_box)
         right.addWidget(general_box)
+        left = QVBoxLayout()
+        left.addWidget(char_box, 1)
+        left.addWidget(lines_box, 1)
         body = QHBoxLayout()
-        body.addWidget(char_box, 1)
+        body.addLayout(left, 1)
         body.addLayout(right, 2)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel | QDialogButtonBox.Apply)
@@ -173,11 +203,12 @@ class SettingsDialog(QDialog):
         self._store_options()
         self._shown = name or None
         self.delete_btn.setEnabled(bool(name))
-        for w in [self.faces_left, self.max_size, *self._frame_spins.values()]:
+        for w in [self.faces_left, self.max_size, *self._frame_spins.values(), *self._line_widgets]:
             w.setEnabled(bool(name))
         if not name:
             for anim, _ in characters.ANIMATIONS:
                 self._set_preview(anim, None)
+            self.lines.clear()
             return
 
         for anim, _ in characters.ANIMATIONS:
@@ -190,6 +221,10 @@ class SettingsDialog(QDialog):
         self.max_size.setValue(int(values["max_size"]))
         for opt, spin in self._frame_spins.items():
             spin.setValue(int(values[opt]) * self.defaults.tick_ms)
+        self.chat_chance.setValue(round(float(values["idle_chat_chance"]) * 100))
+        lines = (self._options.get(name, {}).get("lines")
+                 or _saved_lines(characters.read_settings(self._char_dir(name))))
+        self._set_lines(lines.get(LINE_SITUATION) or DEFAULT_LINES[LINE_SITUATION])
 
     def _store_options(self) -> None:
         """보이던 캐릭터의 옵션 칸 값을 기억 (목록을 바꾸거나 적용하기 전에 호출)."""
@@ -199,13 +234,45 @@ class SettingsDialog(QDialog):
         values = {"faces_left": self.faces_left.isChecked(), "max_size": self.max_size.value()}
         for opt, spin in self._frame_spins.items():
             values[opt] = max(1, round(spin.value() / tick))
+        values["idle_chat_chance"] = self.chat_chance.value() / 100
         saved = characters.read_settings(self._char_dir(self._shown))
         changed = {k: v for k, v in values.items()
                    if saved.get(k, getattr(self.defaults, k)) != v}
+        saved_lines = _saved_lines(saved)
+        edited = self._edited_lines()
+        if edited != list(saved_lines.get(LINE_SITUATION) or DEFAULT_LINES[LINE_SITUATION]):
+            changed["lines"] = {**saved_lines, LINE_SITUATION: edited}   # 다른 상황 대사는 그대로 둠
         if changed:
             self._options[self._shown] = changed
         else:
             self._options.pop(self._shown, None)
+
+    # ---------- 대사 ----------
+    def _set_lines(self, lines) -> None:
+        self.lines.clear()
+        for text in lines:
+            self._append_line(text)
+
+    def _append_line(self, text: str) -> QListWidgetItem:
+        item = QListWidgetItem(text)
+        item.setFlags(item.flags() | Qt.ItemIsEditable)
+        self.lines.addItem(item)
+        return item
+
+    def _edited_lines(self) -> List[str]:
+        """대사 칸 내용 (빈 줄은 뺌). 비어 있으면 기본 대사를 쓰라는 뜻."""
+        texts = (self.lines.item(i).text().strip() for i in range(self.lines.count()))
+        return [t for t in texts if t]
+
+    def _add_line(self) -> None:
+        item = self._append_line("")
+        self.lines.setCurrentItem(item)
+        self.lines.editItem(item)
+
+    def _remove_line(self) -> None:
+        row = self.lines.currentRow()
+        if row >= 0:
+            self.lines.takeItem(row)
 
     def _effective_file(self, name: str, anim: str) -> Optional[str]:
         pending = self._files.get(name, {})
@@ -267,7 +334,9 @@ class SettingsDialog(QDialog):
                 else:
                     characters.clear_animation(self._char_dir(name), anim)
         for name, values in self._options.items():
-            characters.write_settings(self._char_dir(name), values)
+            # 예전 형식 혼잣말 목록은 새 형식(lines)으로 옮겨 저장하니 지움
+            characters.write_settings(self._char_dir(name), values,
+                                      remove=["idle_lines"] if "lines" in values else [])
         self._files.clear()
         self._options.clear()
         updater.set_enabled(self.check_updates.isChecked())
@@ -283,6 +352,14 @@ class SettingsDialog(QDialog):
         for movie in self._movies:
             movie.stop()
         super().done(result)
+
+
+def _saved_lines(saved: Dict) -> Dict[str, List[str]]:
+    """character.json의 상황별 대사 (예전 형식 혼잣말 목록도 읽음)."""
+    lines = dict(saved.get("lines", {}))
+    if "idle_lines" in saved:
+        lines.setdefault("idle", saved["idle_lines"])
+    return lines
 
 
 def _fit(size: QSize) -> QSize:

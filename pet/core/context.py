@@ -3,6 +3,7 @@
 위치, 속도, 방향, 재생 중인 애니메이션, 말풍선 내용을 한곳에 모아서
 상태 클래스가 Qt 위젯을 몰라도 동작하게 합니다.
 """
+import random
 from typing import TYPE_CHECKING
 
 from pet.config import PetConfig
@@ -52,6 +53,12 @@ class PetContext:
     def say(self, text: str, ticks: int = 90) -> None:
         self.bubble_text = text
         self.bubble_ticks = ticks
+
+    def say_line(self, situation: str, ticks: int = 90) -> None:
+        """그 상황의 대사 중 하나를 무작위로 말함 (대사가 없으면 아무것도 안 함)."""
+        lines = self.config.lines_for(situation)
+        if lines:
+            self.say(random.choice(lines), ticks)
 
     def clear_bubble(self) -> None:
         self.bubble_text = ""
