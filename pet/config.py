@@ -12,6 +12,8 @@ PROJECT_DIR = (os.path.dirname(sys.executable) if FROZEN
                else os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # 함께 묶인 읽기 전용 파일(CHANGELOG.md)이 있는 폴더. exe면 실행 중 풀리는 임시 폴더.
 BUNDLE_DIR = getattr(sys, "_MEIPASS", PROJECT_DIR)
+# exe 안에 숨겨 둔 캐릭터(이스터에그). 찾으면 sprites/로 꺼내 씀. 소스로 실행하면 없음
+BUNDLED_SPRITES_DIR = os.path.join(BUNDLE_DIR, "bundled_sprites")
 
 
 @dataclass

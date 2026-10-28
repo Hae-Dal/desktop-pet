@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 
 from PyQt5.QtCore import QSettings
 
+from pet import config
 from pet.ui.sprites import scan_directory
 
 # 설정 창에 보여 줄 동작 (이미지 이름, 표시 이름). 순서대로 표시됨
@@ -44,7 +45,15 @@ def exists(root: str, name: str) -> bool:
 
 
 def has_images(root: str, name: str) -> bool:
-    return bool(scan_directory(os.path.join(root, name)))
+    """sprites/ 또는 exe 안에 숨겨 둔 곳에 그 캐릭터 이미지가 있는지."""
+    return any(scan_directory(os.path.join(base, name)) for base in (root, config.BUNDLED_SPRITES_DIR))
+
+
+def install_bundled(root: str, name: str) -> None:
+    """exe 안에 숨겨 둔 캐릭터를 sprites/로 꺼냄 (이미 있으면 그대로)."""
+    src = os.path.join(config.BUNDLED_SPRITES_DIR, name)
+    if not exists(root, name) and os.path.isdir(src):
+        shutil.copytree(src, os.path.join(root, name))
 
 
 def is_easter_egg_unlocked() -> bool:
