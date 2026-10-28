@@ -22,14 +22,37 @@ ANIMATIONS = [
     ("drag", "잡혔을 때"),
 ]
 
+# 이스터에그: 펫을 빠르게 연타하면 나타나는 숨은 캐릭터. 찾기 전에는 설정 창 목록에 안 보임
+EASTER_EGG = "seal_girl"
+
 _INVALID_NAME = re.compile(r'[\\/:*?"<>|]|^\.|^$')
 _ACTIVE_KEY = "character"
+_UNLOCKED_KEY = "unlocked_easter_egg"
 
 
 def list_characters(root: str) -> List[str]:
+    """설정 창에 보여 줄 캐릭터 (찾지 않은 이스터에그 캐릭터는 뺌)."""
     if not os.path.isdir(root):
         return []
-    return sorted(n for n in os.listdir(root) if os.path.isdir(os.path.join(root, n)))
+    hidden = set() if is_easter_egg_unlocked() else {EASTER_EGG}
+    return sorted(n for n in os.listdir(root)
+                  if os.path.isdir(os.path.join(root, n)) and n not in hidden)
+
+
+def exists(root: str, name: str) -> bool:
+    return os.path.isdir(os.path.join(root, name))
+
+
+def has_images(root: str, name: str) -> bool:
+    return bool(scan_directory(os.path.join(root, name)))
+
+
+def is_easter_egg_unlocked() -> bool:
+    return QSettings("desktop_pet", "desktop_pet").value(_UNLOCKED_KEY, False, type=bool)
+
+
+def unlock_easter_egg() -> None:
+    QSettings("desktop_pet", "desktop_pet").setValue(_UNLOCKED_KEY, True)
 
 
 def is_valid_name(name: str) -> bool:

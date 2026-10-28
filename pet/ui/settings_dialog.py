@@ -142,7 +142,7 @@ class SettingsDialog(QDialog):
         if not characters.is_valid_name(name):
             QMessageBox.warning(self, "새 캐릭터", '이름에 \\ / : * ? " < > | 는 쓸 수 없습니다.')
             return
-        if name in characters.list_characters(self.root):
+        if characters.exists(self.root, name):
             QMessageBox.warning(self, "새 캐릭터", f"'{name}' 캐릭터가 이미 있습니다.")
             return
         self._store_options()

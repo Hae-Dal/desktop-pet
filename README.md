@@ -14,7 +14,7 @@ python main.py [--character 폴더이름] [--size 128]
 
 | 인자 | 설명 | 기본값 |
 |---|---|---|
-| `--character` | `sprites/` 아래 캐릭터 폴더 이름 | 설정 창에서 고른 캐릭터, 없으면 `seal_girl` |
+| `--character` | `sprites/` 아래 캐릭터 폴더 이름 | 설정 창에서 고른 캐릭터, 없으면 `default` |
 | `--size` | 캐릭터 최대 크기(px). 더 큰 이미지는 축소 | 캐릭터의 `character.json`, 없으면 `128` |
 
 ## 조작
@@ -87,6 +87,8 @@ desktop_pet/
 | 우클릭 메뉴 항목 | `pet/ui/menu.py`의 `default_items` |
 | 캐릭터 교체 | 우클릭 → 설정, 또는 `sprites/<이름>/` 폴더를 만들고 `--character <이름>` |
 | 설정 창에 보이는 동작 목록 | `pet/ui/characters.py`의 `ANIMATIONS` |
+| 이스터에그 캐릭터 | `pet/ui/characters.py`의 `EASTER_EGG` (찾기 전에는 설정 창에 안 보임) |
+| 이스터에그 조건 (연타 횟수·시간) | `pet/config.py`의 `easter_egg_clicks`, `easter_egg_seconds` |
 
 ## 오류가 났을 때
 

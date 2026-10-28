@@ -1,4 +1,6 @@
 """창 설정, 그리기, 마우스 입력만 담당합니다. 행동 판단은 pet/core/states가 합니다."""
+import time
+
 from PyQt5.QtCore import QPoint, Qt, QTimer
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QApplication, QWidget
@@ -7,7 +9,7 @@ from pet import __version__
 from pet.config import PetConfig
 from pet.core.context import PetContext
 from pet.core.states import StateMachine, TimedState, build_states
-from pet.ui import changelog, menu
+from pet.ui import changelog, characters, menu
 from pet.ui.bubble import BubbleWidget
 from pet.ui.settings_dialog import SettingsDialog
 from pet.ui.sprites import SpriteSet
@@ -41,6 +43,7 @@ class PetWidget(QWidget):
         self._drag_offset = QPoint()
         self._press_pos = QPoint()
         self._moved = False
+        self._clicks = []                   # 최근 클릭 시각 (이스터에그 연타 판정)
 
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._tick)
@@ -133,3 +136,23 @@ class PetWidget(QWidget):
             if not self._moved and self.ctx.on_ground:
                 self.ctx.vy = self.config.jump_power     # 그냥 클릭 = 점프
             self.machine.change("fall")                  # 놓으면 중력으로 떨어짐
+            if not self._moved:
+                self._count_click()
+
+    # ---------- 이스터에그 ----------
+    def _count_click(self) -> None:
+        now = time.monotonic()
+        window = self.config.easter_egg_seconds
+        self._clicks = [t for t in self._clicks if now - t <= window] + [now]
+        if len(self._clicks) >= self.config.easter_egg_clicks:
+            self._clicks.clear()
+            self._find_easter_egg()
+
+    def _find_easter_egg(self) -> None:
+        name = characters.EASTER_EGG
+        if self.config.character == name or not characters.has_images(self.config.sprites_root, name):
+            return                                       # 이미 그 캐릭터거나, 이미지가 없는 PC
+        characters.unlock_easter_egg()
+        characters.set_active_character(name)
+        self.change_character(name)
+        self.ctx.say("짠! 물범이랑 같이 왔어", 120)

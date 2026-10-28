@@ -1,6 +1,6 @@
 """진입점. 프로젝트 폴더에서 실행하세요.
 
-    python main.py                       # sprites/seal_girl/ 의 캐릭터로 실행
+    python main.py                       # 설정 창에서 고른 캐릭터로 실행 (처음엔 sprites/default/)
     python main.py --character pikachu   # sprites/pikachu/ 폴더의 캐릭터로 실행
     python main.py --size 96             # 캐릭터 최대 크기(px) 변경
 """
