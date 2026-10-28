@@ -14,8 +14,7 @@ class IdleState(TimedState):
 
     def enter(self) -> None:
         super().enter()
-        cfg = self.ctx.config
         if self.ctx.bubble_text:            # 이미 말하는 중이면 덮어쓰지 않음
             return
-        if cfg.idle_lines and random.random() < cfg.idle_chat_chance:
-            self.ctx.say(random.choice(cfg.idle_lines))
+        if random.random() < self.ctx.config.idle_chat_chance:
+            self.ctx.say_line("idle")

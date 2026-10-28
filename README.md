@@ -85,7 +85,7 @@ desktop_pet/
 |---|---|
 | 속도·크기·점프 높이·지속 시간 | `pet/config.py` |
 | 애니메이션 프레임 속도 | `pet/config.py`의 `frame_every` (기본), `walk_frame_every`, `sleep_frame_every` |
-| 혼잣말 내용·확률 | `pet/config.py`의 `idle_lines`, `idle_chat_chance` |
+| 혼잣말 내용·확률 | 설정 창의 혼잣말 칸, 또는 `character.json`의 `lines`, `idle_chat_chance` (기본 대사는 `pet/config.py`의 `DEFAULT_LINES`) |
 | 행동 확률 | `pet/core/states/transitions.py` |
 | 새 행동 추가 | `pet/core/states/`에 파일 추가 → `__init__.py`의 `STATE_CLASSES` 등록 → `transitions.py`에 확률 추가 → `sprites/<캐릭터>/<이름>_1.png` (자세한 방법은 `pet/core/states/__init__.py`) |
 | 우클릭 메뉴 항목 | `pet/ui/menu.py`의 `default_items` |

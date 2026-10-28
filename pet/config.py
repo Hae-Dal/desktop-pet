@@ -2,8 +2,8 @@
 import json
 import os
 import sys
-from dataclasses import dataclass, fields, replace
-from typing import Tuple
+from dataclasses import dataclass, field, fields, replace
+from typing import Dict, Tuple
 
 FROZEN = getattr(sys, "frozen", False)     # PyInstaller로 만든 exe로 실행 중
 
@@ -14,6 +14,12 @@ PROJECT_DIR = (os.path.dirname(sys.executable) if FROZEN
 BUNDLE_DIR = getattr(sys, "_MEIPASS", PROJECT_DIR)
 # exe 안에 숨겨 둔 캐릭터(이스터에그). 찾으면 sprites/로 꺼내 씀. 소스로 실행하면 없음
 BUNDLED_SPRITES_DIR = os.path.join(BUNDLE_DIR, "bundled_sprites")
+
+# 상황별 기본 대사. 캐릭터가 그 상황 대사를 따로 정하지 않았거나 비워 두면 이걸 씀.
+# 새 상황을 만들려면 여기에 이름을 추가하고, 그 상황에서 ctx.say_line("이름")을 부르면 됩니다.
+DEFAULT_LINES: Dict[str, Tuple[str, ...]] = {
+    "idle": ("심심해~", "뭐 하고 있어?", "배고프다...", "산책 갈까?"),   # 가만히 있다가 혼잣말
+}
 
 
 @dataclass
@@ -50,22 +56,31 @@ class PetConfig:
 
     # --- 말풍선 ---
     idle_chat_chance: float = 0.3                   # idle 상태로 들어갈 때 혼잣말할 확률
-    idle_lines: Tuple[str, ...] = ("심심해~", "뭐 하고 있어?", "배고프다...", "산책 갈까?")
+    lines: Dict[str, Tuple[str, ...]] = field(default_factory=dict)   # 상황 -> 대사 (없는 상황은 DEFAULT_LINES)
 
     @property
     def character_dir(self) -> str:
         return os.path.join(self.sprites_root, self.character)
 
+    def lines_for(self, situation: str) -> Tuple[str, ...]:
+        """그 상황에서 할 대사 목록. 캐릭터가 정한 게 없거나 비었으면 기본 대사."""
+        return self.lines.get(situation) or DEFAULT_LINES.get(situation, ())
+
     def with_character_settings(self) -> "PetConfig":
         """캐릭터 폴더의 character.json 값으로 덮어쓴 설정을 돌려줌 (파일이 없으면 그대로).
 
-        예: {"faces_left": true, "max_size": 160, "frame_every": 4}
+        예: {"faces_left": true, "max_size": 160, "frame_every": 4,
+             "lines": {"idle": ["물범아 놀자!", "졸려..."]}}
         """
         path = os.path.join(self.character_dir, "character.json")
         if not os.path.isfile(path):
             return self
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
+        if "idle_lines" in data:            # 0.9 이하 형식: 혼잣말 목록만 따로 있던 것
+            data.setdefault("lines", {}).setdefault("idle", data.pop("idle_lines"))
+        if "lines" in data:
+            data["lines"] = {k: tuple(v) for k, v in data["lines"].items()}
         allowed = {f.name for f in fields(self)} - {"character", "sprites_root"}
         unknown = set(data) - allowed
         if unknown:
