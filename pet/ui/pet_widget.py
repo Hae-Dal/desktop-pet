@@ -74,6 +74,11 @@ class PetWidget(QWidget):
             self.ctx.vy = self.config.jump_power
             self.machine.change("fall")
 
+    def greet(self) -> None:
+        """프로그램을 또 실행하려고 했을 때: 이미 여기 있다고 알림."""
+        self.jump()                                  # 자는 중이면 깨면서 말풍선이 지워지므로 먼저
+        self.ctx.say("나 이미 여기 있어!", 90)
+
     def show_settings(self) -> None:
         if self._settings is None or not self._settings.isVisible():
             self._settings = SettingsDialog(self.config.sprites_root, self.config.character,

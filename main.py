@@ -16,6 +16,7 @@ from pet import __version__
 from pet.config import PetConfig
 from pet.ui import characters, errorlog
 from pet.ui.pet_widget import PetWidget
+from pet.ui.single_instance import SingleInstance
 from pet.ui.sprites import SpriteSet
 from pet.ui.world import World
 
@@ -50,8 +51,12 @@ def main() -> int:
     app.setOrganizationName("desktop_pet")
     app.setApplicationName("desktop_pet")
     errorlog.install()                    # 오류가 나도 꺼지지 않고 error.log에 기록
+    instance = SingleInstance()
+    if not instance.acquire():            # 이미 실행 중이면 그 펫이 대신 인사하고 여기선 종료
+        return 0
     sprites = SpriteSet.load(config)
     pet = PetWidget(config, sprites, World())
+    instance.activated.connect(pet.greet)
     pet.show()
     return app.exec_()
 

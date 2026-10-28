@@ -69,6 +69,7 @@ desktop_pet/
         ├── changelog.py       업데이트 내역 창 (CHANGELOG.md 표시), 새 버전 첫 실행 확인
         ├── menu.py            우클릭 메뉴 항목 목록
         ├── settings_dialog.py 설정 창 (캐릭터 선택, 이미지, 옵션)
+        ├── single_instance.py 중복 실행 방지 (이미 실행 중이면 그 펫이 인사하고 종료)
         ├── sprites.py         이미지 로딩, 좌우 반전, 임시 도형 대체
         └── world.py           화면 경계·바닥 좌표 (모니터 정보는 실행 중에 읽어 옴)
 ```
