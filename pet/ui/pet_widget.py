@@ -7,7 +7,7 @@ from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QApplication, QDialog, QWidget
 
 from pet import __version__
-from pet.config import PetConfig
+from pet.config import PetConfig, character_file_error
 from pet.core.context import PetContext
 from pet.core.states import StateMachine, TimedState, build_states
 from pet.ui import changelog, easter_egg, menu, topmost, updater
@@ -41,6 +41,7 @@ class PetWidget(QWidget):
             lambda v: self.ctx.say(f"새 버전 v{v}이 나왔어!\n우클릭 → 새 버전 받기", 200))
         if changelog.is_new_version():
             self.ctx.say(f"v{__version__}로 업데이트됐어!\n우클릭 → 업데이트 내역", 150)
+        self._warn_broken_settings()
 
         self._drag_offset = QPoint()
         self._press_pos = QPoint()
@@ -99,6 +100,12 @@ class PetWidget(QWidget):
         self._load(config, SpriteSet.load(config))
         self.machine.change("fall")                  # 크기가 바뀌었을 수 있으니 바닥으로
         self.update()
+        self._warn_broken_settings()
+
+    def _warn_broken_settings(self) -> None:
+        """character.json이 깨져서 기본 설정으로 켜졌으면 알림 (고칠 때까지 켤 때마다)."""
+        if character_file_error(self.config.character_dir):
+            self.ctx.say("캐릭터 설정 파일을 읽을 수 없어서\n기본 설정으로 켰어", 200)
 
     def show_settings(self) -> None:
         if self._settings is None or not self._settings.isVisible():

@@ -157,9 +157,14 @@ class SettingsDialog(QDialog):
     def _apply(self) -> None:
         self._remember_changes()
         self.images.apply()
-        for name, values in self._options.items():
-            characters.write_settings(self._char_dir(name), values)
+        backups = [characters.write_settings(self._char_dir(name), values)
+                   for name, values in self._options.items()]
+        backups = [b for b in backups if b]
         self._options.clear()
+        if backups:
+            QMessageBox.information(
+                self, "설정 저장", "읽을 수 없던 설정 파일을 새로 저장했습니다.\n원래 파일은 여기에 남겨 두었습니다:\n\n"
+                + "\n".join(backups))
         prefs.set_check_updates(self.check_updates.isChecked())
         if self._shown:
             prefs.set_active_character(self._shown)

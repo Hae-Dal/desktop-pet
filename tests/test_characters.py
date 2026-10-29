@@ -150,3 +150,12 @@ def test_large_images_are_scaled_down(tmp_path, qapp):
     (tmp_path / "cat" / "character.json").write_text(json.dumps({"max_size": 100}), encoding="utf-8")
     config = PetConfig(character="cat", sprites_root=str(tmp_path)).with_character_settings()
     assert SpriteSet.load(config).size == (100, 50)
+
+
+def test_saving_over_broken_file_keeps_backup(root):
+    char = root / "cat"
+    (char / "character.json").write_text('{"max_size": 100,', encoding="utf-8")
+    backup = characters.write_settings(str(char), {"faces_left": True})
+    assert backup and open(backup, encoding="utf-8").read() == '{"max_size": 100,'
+    assert characters.read_settings(str(char)) == {"faces_left": True}
+    assert characters.write_settings(str(char), {"max_size": 50}) is None      # 이제 멀쩡하니 백업 안 함

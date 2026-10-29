@@ -134,3 +134,15 @@ def test_slow_clicks_do_not_find_easter_egg(make_pet, bundled_egg, monkeypatch):
         now[0] += pet.config.easter_egg_seconds / 2
         QTest.mouseClick(pet, Qt.LeftButton, pos=QPoint(5, 5))
     assert pet.config.character == "default"
+
+
+def test_broken_settings_file_is_announced(make_pet, tmp_path):
+    (tmp_path / "cat").mkdir()
+    (tmp_path / "cat" / "character.json").write_text("{oops", encoding="utf-8")
+    pet = make_pet(PetConfig(character="cat", sprites_root=str(tmp_path)).with_character_settings())
+    assert "설정 파일을 읽을 수 없어서" in pet.ctx.bubble_text
+
+    (tmp_path / "good").mkdir()
+    pet.ctx.bubble_text = ""
+    pet.change_character("good")
+    assert pet.ctx.bubble_text == ""

@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QCheckBox, QListWidget, QPushButton, QSpinBox
 
 from pet.config import DEFAULT_LINES, PetConfig
 from pet.ui import prefs
-from pet.ui.settings import SettingsDialog, images
+from pet.ui.settings import SettingsDialog, dialog, images
 
 
 class Dialog:
@@ -142,3 +142,24 @@ def test_image_check_rejects_too_many_frames(qapp, monkeypatch):
 def test_image_check_rejects_broken_file(tmp_path, qapp):
     (tmp_path / "broken.png").write_bytes(b"not a png")
     assert "읽을 수 없습니다" in images.check_image(str(tmp_path / "broken.png"))
+
+
+def test_broken_file_opens_and_saves_with_backup(root, monkeypatch):
+    (root / "a" / "character.json").write_text('{"max_size": "big", oops', encoding="utf-8")
+    shown = []
+    monkeypatch.setattr(dialog.QMessageBox, "information", lambda *args: shown.append(args[2]))
+    ui = Dialog(root)
+    assert ui.line_texts() == list(DEFAULT_LINES["idle"])     # 기본값으로 보임
+    ui.add_line("새 대사")
+    ui.apply()
+    assert ui.json("a")["lines"]["idle"][-1] == "새 대사"
+    assert (root / "a" / "character.json.bak").read_text(encoding="utf-8") == '{"max_size": "big", oops'
+    assert len(shown) == 1 and "character.json.bak" in shown[0]
+
+
+def test_wrong_type_values_show_defaults(root):
+    (root / "a" / "character.json").write_text(json.dumps({"max_size": "big", "idle_chat_chance": None}),
+                                               encoding="utf-8")
+    ui = Dialog(root)
+    assert ui.spin(" px")[0].value() == PetConfig().max_size
+    assert ui.spin(" %")[0].value() == round(PetConfig().idle_chat_chance * 100)
