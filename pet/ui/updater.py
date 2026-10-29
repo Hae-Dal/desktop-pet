@@ -7,23 +7,18 @@ import json
 import re
 from typing import Optional, Tuple
 
-from PyQt5.QtCore import QObject, QSettings, QUrl, pyqtSignal
+from PyQt5.QtCore import QObject, QTimer, QUrl, pyqtSignal
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
 from pet import __version__
+from pet.ui import prefs
 
 REPO = "Hae-Dal/desktop-pet"
 LATEST_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
 TIMEOUT_MS = 10000
-_ENABLED_KEY = "check_updates"
-
-
-def is_enabled() -> bool:
-    return QSettings("desktop_pet", "desktop_pet").value(_ENABLED_KEY, True, type=bool)
-
-
-def set_enabled(on: bool) -> None:
-    QSettings("desktop_pet", "desktop_pet").setValue(_ENABLED_KEY, on)
+START_DELAY_MS = 5000                       # 시작 말풍선과 겹치지 않게 조금 뒤에 첫 확인
+INTERVAL_MS = 6 * 60 * 60 * 1000            # 켜 둔 동안 다시 확인하는 간격 (6시간)
 
 
 def parse_version(text: str) -> Optional[Tuple[int, ...]]:
@@ -60,3 +55,35 @@ class UpdateChecker(QObject):
             return
         if latest and latest > parse_version(__version__):
             self.update_available.emit(".".join(map(str, latest)), url)
+
+
+class UpdateWatcher(QObject):
+    """켜 있는 동안 새 버전을 지켜봄: 시작 조금 뒤 한 번, 그 뒤로 INTERVAL_MS마다.
+
+    설정에서 끄면 그 차례는 건너뛰고, 이미 알린 버전은 다시 알리지 않습니다.
+    """
+    found = pyqtSignal(str)                     # 처음 알게 된 새 버전 ("0.8.0")
+
+    def __init__(self, parent: Optional[QObject] = None):
+        super().__init__(parent)
+        self.version = ""                       # 알게 된 최신 버전 (없으면 "")
+        self.url = ""                           # 그 버전의 릴리스 페이지
+        self._checker = UpdateChecker(self)
+        self._checker.update_available.connect(self._on_available)
+        QTimer.singleShot(START_DELAY_MS, self._check)
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._check)
+        self._timer.start(INTERVAL_MS)
+
+    def open_page(self) -> None:
+        QDesktopServices.openUrl(QUrl(self.url))
+
+    def _check(self) -> None:
+        if prefs.check_updates():
+            self._checker.check()
+
+    def _on_available(self, version: str, url: str) -> None:
+        if version == self.version:
+            return
+        self.version, self.url = version, url
+        self.found.emit(version)

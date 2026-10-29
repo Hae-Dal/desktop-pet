@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QApplication
 
 from pet import __version__
 from pet.config import PetConfig
-from pet.ui import characters, errorlog
+from pet.ui import errorlog, prefs
 from pet.ui.pet_widget import PetWidget
 from pet.ui.single_instance import SingleInstance
 from pet.ui.sprites import SpriteSet
@@ -34,7 +34,7 @@ def parse_args() -> argparse.Namespace:
 
 def _saved_character() -> Optional[str]:
     """설정 창에서 마지막으로 고른 캐릭터. 폴더가 지워졌으면 None."""
-    name = characters.active_character()
+    name = prefs.active_character()
     if name and os.path.isdir(os.path.join(PetConfig().sprites_root, name)):
         return name
     return None
@@ -48,8 +48,8 @@ def main() -> int:
         config = replace(config, max_size=args.size)
 
     app = QApplication(sys.argv)          # QPixmap 생성보다 먼저 만들어야 함
-    app.setOrganizationName("desktop_pet")
-    app.setApplicationName("desktop_pet")
+    app.setOrganizationName(prefs.ORGANIZATION)
+    app.setApplicationName(prefs.APPLICATION)
     # 펫은 Tool 창이라 Qt가 '창'으로 세지 않음. 그대로 두면 설정·업데이트 내역 창을 닫는 순간
     # 마지막 창이 닫혔다고 보고 앱이 꺼짐. 종료는 우클릭 메뉴(또는 Ctrl+C)로만.
     app.setQuitOnLastWindowClosed(False)

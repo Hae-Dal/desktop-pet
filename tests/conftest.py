@@ -1,0 +1,47 @@
+"""공통 준비: 화면 없이 Qt 실행, 테스트가 실제 사용자 설정(레지스트리 등)을 바꾸지 않게 보호.
+
+    pip install -r requirements-dev.txt
+    python -m pytest
+"""
+import os
+import sys
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import pytest
+from PyQt5.QtWidgets import QApplication
+
+from pet.ui import prefs
+
+
+@pytest.fixture(scope="session")
+def qapp():
+    app = QApplication.instance() or QApplication([])
+    app.setOrganizationName(prefs.ORGANIZATION)
+    app.setApplicationName(prefs.APPLICATION)
+    return app
+
+
+@pytest.fixture(autouse=True)
+def separate_settings(tmp_path, monkeypatch):
+    """테스트마다 빈 임시 파일에 저장. 사용자의 실제 저장값(레지스트리 등)은 읽지도 쓰지도 않음."""
+    monkeypatch.setattr(prefs, "override_file", str(tmp_path / "prefs.ini"))
+
+
+class FakeWorld:
+    """화면 하나짜리 가짜 세상: x는 0~width, 바닥은 ground."""
+
+    def __init__(self, width: int = 1000, ground: int = 500):
+        self.width, self.ground = width, ground
+
+    def ground_y(self, x, y, w, h):
+        return self.ground - h
+
+    def x_range(self, w):
+        return 0, self.width - w
+
+
+@pytest.fixture
+def world():
+    return FakeWorld()

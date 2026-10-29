@@ -6,7 +6,7 @@
         프레임 속도는 frame_every로 정하며, 생략하면 config.frame_every를 씀.
         TimedState를 상속하면 클릭·메뉴 점프도 자동으로 가능)
     2. 아래 STATE_CLASSES에 등록
-    3. transitions.py의 TRANSITION_WEIGHTS에 어떤 상태에서 어떤 확률로 넘어올지 추가
+    3. pet/config.py의 DEFAULT_TRANSITIONS에 어떤 상태에서 어떤 확률로 넘어올지 추가
     4. sprites/<캐릭터>/dance_1.png ... 를 넣는다 (없으면 idle 이미지로 대체됨)
 """
 from typing import Dict, List, Type

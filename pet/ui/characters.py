@@ -1,4 +1,4 @@
-"""캐릭터 폴더 관리: 목록, 동작별 이미지 넣기·지우기, character.json, 사용 중인 캐릭터.
+"""캐릭터 폴더 관리: 목록, 동작별 이미지 넣기·지우기, character.json 저장.
 
 설정 창이 쓰는 파일 작업을 모아 두었습니다. 이미지 파일 이름 규칙은 sprites.py와 같습니다.
 """
@@ -6,12 +6,11 @@ import json
 import os
 import re
 import shutil
-from typing import Dict, Iterable, List, Optional
-
-from PyQt5.QtCore import QSettings
+from typing import Dict, List, Optional
 
 from pet import config
-from pet.ui.sprites import scan_directory
+from pet.ui import easter_egg, prefs
+from pet.ui.sprites import pick_files, scan_directory
 
 # 설정 창에 보여 줄 동작 (이미지 이름, 표시 이름). 순서대로 표시됨
 ANIMATIONS = [
@@ -23,45 +22,20 @@ ANIMATIONS = [
     ("drag", "잡혔을 때"),
 ]
 
-# 이스터에그: 펫을 빠르게 연타하면 나타나는 숨은 캐릭터. 찾기 전에는 설정 창 목록에 안 보임
-EASTER_EGG = "seal_girl"
-
 _INVALID_NAME = re.compile(r'[\\/:*?"<>|]|^\.|^$')
-_ACTIVE_KEY = "character"
-_UNLOCKED_KEY = "unlocked_easter_egg"
 
 
 def list_characters(root: str) -> List[str]:
     """설정 창에 보여 줄 캐릭터 (찾지 않은 이스터에그 캐릭터는 뺌)."""
     if not os.path.isdir(root):
         return []
-    hidden = set() if is_easter_egg_unlocked() else {EASTER_EGG}
+    hidden = set() if prefs.easter_egg_unlocked() else {easter_egg.NAME}
     return sorted(n for n in os.listdir(root)
                   if os.path.isdir(os.path.join(root, n)) and n not in hidden)
 
 
 def exists(root: str, name: str) -> bool:
     return os.path.isdir(os.path.join(root, name))
-
-
-def has_images(root: str, name: str) -> bool:
-    """sprites/ 또는 exe 안에 숨겨 둔 곳에 그 캐릭터 이미지가 있는지."""
-    return any(scan_directory(os.path.join(base, name)) for base in (root, config.BUNDLED_SPRITES_DIR))
-
-
-def install_bundled(root: str, name: str) -> None:
-    """exe 안에 숨겨 둔 캐릭터를 sprites/로 꺼냄 (이미 있으면 그대로)."""
-    src = os.path.join(config.BUNDLED_SPRITES_DIR, name)
-    if not exists(root, name) and os.path.isdir(src):
-        shutil.copytree(src, os.path.join(root, name))
-
-
-def is_easter_egg_unlocked() -> bool:
-    return QSettings("desktop_pet", "desktop_pet").value(_UNLOCKED_KEY, False, type=bool)
-
-
-def unlock_easter_egg() -> None:
-    QSettings("desktop_pet", "desktop_pet").setValue(_UNLOCKED_KEY, True)
 
 
 def is_valid_name(name: str) -> bool:
@@ -79,15 +53,9 @@ def delete_character(root: str, name: str) -> None:
 
 
 def animation_file(char_dir: str, anim: str) -> Optional[str]:
-    """그 동작에 실제로 쓰이는 파일 (번호 붙은 파일 > .png > .gif). 미리보기용."""
-    files = scan_directory(char_dir).get(anim, [])
-    numbered = sorted((f for f in files if f.number is not None), key=lambda f: f.number)
-    png = [f for f in files if f.number is None and f.ext == "png"]
-    gif = [f for f in files if f.number is None and f.ext == "gif"]
-    for group in (numbered, png, gif):
-        if group:
-            return group[0].path
-    return None
+    """그 동작에 실제로 쓰이는 첫 파일. 미리보기용."""
+    picked = pick_files(scan_directory(char_dir).get(anim, []))
+    return picked[0].path if picked else None
 
 
 def clear_animation(char_dir: str, anim: str) -> None:
@@ -105,28 +73,16 @@ def set_animation(char_dir: str, anim: str, src: str) -> None:
         f.write(data)
 
 
-def read_settings(char_dir: str) -> Dict:
-    path = os.path.join(char_dir, "character.json")
-    if not os.path.isfile(path):
-        return {}
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+read_settings = config.read_character_file
 
 
-def write_settings(char_dir: str, values: Dict, remove: Iterable[str] = ()) -> None:
-    """기존 character.json에 values를 합쳐 저장 (설정 창에 없는 값은 유지). remove의 키는 지움."""
+def write_settings(char_dir: str, values: Dict) -> None:
+    """기존 character.json에 values를 합쳐 저장 (설정 창에 없는 값은 유지).
+
+    읽을 때 예전 형식이 지금 형식으로 바뀌므로, 저장하면 파일도 지금 형식이 됨.
+    """
     data = read_settings(char_dir)
     data.update(values)
-    for key in remove:
-        data.pop(key, None)
-    with open(os.path.join(char_dir, "character.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(char_dir, config.CHARACTER_FILE), "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
         f.write("\n")
-
-
-def active_character() -> Optional[str]:
-    return QSettings("desktop_pet", "desktop_pet").value(_ACTIVE_KEY)
-
-
-def set_active_character(name: str) -> None:
-    QSettings("desktop_pet", "desktop_pet").setValue(_ACTIVE_KEY, name)

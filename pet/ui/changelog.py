@@ -2,27 +2,26 @@
 
 내용은 프로젝트 폴더의 CHANGELOG.md에서 릴리스된 버전 항목만 골라 보여 줍니다
 (맨 위 안내·주석과 '미반영' 항목은 숨김).
-마지막으로 실행한 버전은 QSettings에 저장됩니다 (Windows는 레지스트리, macOS/Linux는 설정 파일).
+마지막으로 실행한 버전은 prefs에 저장됩니다.
 """
 import re
 from pathlib import Path
 
-from PyQt5.QtCore import QSettings, Qt
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QTextBrowser, QVBoxLayout
 
 from pet import __version__
 from pet.config import BUNDLE_DIR
+from pet.ui import prefs
 
 CHANGELOG_PATH = Path(BUNDLE_DIR) / "CHANGELOG.md"
-_SEEN_KEY = "last_seen_version"
 
 
 def is_new_version() -> bool:
     """이번 버전으로 처음 실행했으면 True. 확인한 버전은 바로 기록합니다."""
-    settings = QSettings("desktop_pet", "desktop_pet")
-    if settings.value(_SEEN_KEY) == __version__:
+    if prefs.last_seen_version() == __version__:
         return False
-    settings.setValue(_SEEN_KEY, __version__)
+    prefs.set_last_seen_version(__version__)
     return True
 
 

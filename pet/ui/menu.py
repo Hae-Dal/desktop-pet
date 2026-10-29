@@ -19,8 +19,8 @@ def default_items(pet) -> List[MenuItem]:
         MenuItem("설정...", pet.show_settings),
         MenuItem("업데이트 내역", pet.show_changelog),
     ]
-    if pet.new_version:                 # 새 버전이 있을 때만 보임
-        items.append(MenuItem(f"새 버전 받기 (v{pet.new_version})", pet.open_update_page))
+    if pet.updates.version:             # 새 버전이 있을 때만 보임
+        items.append(MenuItem(f"새 버전 받기 (v{pet.updates.version})", pet.updates.open_page))
     items.append(MenuItem("종료", QApplication.quit))
     return items
 

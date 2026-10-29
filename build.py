@@ -3,7 +3,7 @@
     python build.py
 
 dist/DesktopPet-v<버전>-<OS>.zip 이 만들어집니다. 안에는 실행 파일과 빈 sprites/ 폴더가 들어갑니다.
-이스터에그 캐릭터(sprites/<EASTER_EGG>/)는 이 PC에 있으면 exe 안에 숨겨서 넣습니다 (비상업 2차 창작 조건).
+이스터에그 캐릭터(sprites/<easter_egg.NAME>/)는 이 PC에 있으면 exe 안에 숨겨서 넣습니다 (비상업 2차 창작 조건).
 그 외 캐릭터 이미지는 넣지 않습니다. 필요한 패키지: pip install -r requirements.txt pyinstaller
 """
 import os
@@ -13,7 +13,7 @@ import subprocess
 import sys
 
 from pet import __version__
-from pet.ui.characters import EASTER_EGG
+from pet.ui.easter_egg import NAME as EASTER_EGG
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 BUILD = os.path.join(ROOT, "build")
@@ -26,6 +26,10 @@ def main() -> int:
     bundled = []
     if os.path.isdir(egg):
         bundled = ["--add-data", egg + os.pathsep + os.path.join("bundled_sprites", EASTER_EGG)]
+        changed = subprocess.run(["git", "status", "--porcelain", "--", egg], cwd=ROOT,
+                                 capture_output=True, text=True).stdout.strip()
+        if changed:     # 테스트하며 바꾼 대사·설정이 배포 파일에 그대로 들어가지 않게
+            print(f"경고: {egg} 에 커밋 안 된 변경이 있어 그대로 exe에 들어갑니다:\n{changed}")
     else:
         print(f"경고: {egg} 가 없어 이스터에그 캐릭터 없이 빌드합니다.")
 
