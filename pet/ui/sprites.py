@@ -60,11 +60,17 @@ def scan_directory(directory: str) -> Dict[str, List[SpriteFile]]:
     return found
 
 
-def pick_files(files: List[SpriteFile]) -> List[SpriteFile]:
-    """한 동작의 파일들 중 실제로 쓸 것: 번호 붙은 파일들(번호순), 없으면 번호 없는 파일 하나."""
+def _candidates(files: List[SpriteFile]) -> List[List[SpriteFile]]:
+    """쓸 파일 묶음 후보를 우선순위대로: 번호 붙은 파일들(번호순), 그다음 번호 없는 파일 하나씩."""
     numbered = sorted((f for f in files if f.number is not None), key=lambda f: f.number)
     single = sorted((f for f in files if f.number is None), key=lambda f: EXTENSIONS.index(f.ext))
-    return numbered or single[:1]
+    return ([numbered] if numbered else []) + [[f] for f in single]
+
+
+def pick_files(files: List[SpriteFile]) -> List[SpriteFile]:
+    """한 동작의 파일들 중 실제로 쓸 것 (읽을 수 있는지는 보지 않음. 미리보기용)."""
+    candidates = _candidates(files)
+    return candidates[0] if candidates else []
 
 
 def _read_frames(f: SpriteFile) -> List[QPixmap]:
@@ -82,7 +88,12 @@ def _read_frames(f: SpriteFile) -> List[QPixmap]:
 
 
 def _load_animation(files: List[SpriteFile], max_size: int) -> List[QPixmap]:
-    return [_scale(pix, max_size) for f in pick_files(files) for pix in _read_frames(f)]
+    """우선순위대로 읽어 보고, 깨진 파일뿐이면 다음 후보로 (예: idle.png가 깨졌으면 idle.gif)."""
+    for group in _candidates(files):
+        frames = [_scale(pix, max_size) for f in group for pix in _read_frames(f)]
+        if frames:
+            return frames
+    return []
 
 
 def _make_placeholder() -> Dict[str, List[QPixmap]]:

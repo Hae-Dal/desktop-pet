@@ -93,12 +93,26 @@ class PetConfig:
         data = read_character_file(self.character_dir)
         if "lines" in data:
             data["lines"] = {k: tuple(v) for k, v in data["lines"].items()}
+        if "transitions" in data:
+            data["transitions"] = _clean_transitions(data["transitions"], self.character_dir)
         allowed = {f.name for f in fields(self)} - {"character", "sprites_root"}
         unknown = set(data) - allowed
         if unknown:
             print(f"{self.character_dir}: character.json의 모르는 설정 무시 {sorted(unknown)}", file=sys.stderr)
         values = {k: tuple(v) if isinstance(v, list) else v for k, v in data.items() if k in allowed}
         return replace(self, **values)
+
+
+def _clean_transitions(raw, where: str) -> Dict[str, Dict[str, float]]:
+    """숫자가 아닌 가중치는 버림 (손으로 고친 파일의 오타 하나로 펫이 멈추지 않게)."""
+    clean: Dict[str, Dict[str, float]] = {}
+    for state, weights in (raw.items() if isinstance(raw, dict) else ()):
+        if isinstance(weights, dict):
+            clean[state] = {n: float(w) for n, w in weights.items()
+                            if isinstance(w, (int, float)) and not isinstance(w, bool)}
+    if clean != raw:
+        print(f"{where}: character.json의 transitions 중 숫자가 아닌 값 무시", file=sys.stderr)
+    return clean
 
 
 CHARACTER_FILE = "character.json"

@@ -58,3 +58,10 @@ def test_transitions_override_only_given_weights(tmp_path):
     weights = result.transitions_for("idle")
     assert weights["sleep"] == 3 and weights["walk"] == DEFAULT_TRANSITIONS["idle"]["walk"]
     assert result.transitions_for("walk") == DEFAULT_TRANSITIONS["walk"]
+
+
+def test_transition_typos_are_ignored(tmp_path):
+    config = make_character(tmp_path, {"transitions": {"idle": {"sleep": "3", "sit": 5, "walk": True}, "sit": 2}}
+                            ).with_character_settings()
+    assert config.transitions == {"idle": {"sit": 5.0}}
+    assert config.transitions_for("idle")["sleep"] == DEFAULT_TRANSITIONS["idle"]["sleep"]

@@ -95,6 +95,14 @@ def test_animated_file_uses_all_frames(tmp_path, qapp, ext):
     assert sprites.size == (12, 8)
 
 
+def test_broken_file_falls_back_to_next_format(tmp_path, qapp):
+    (tmp_path / "cat").mkdir()
+    (tmp_path / "cat" / "idle.png").write_bytes(b"not a png")
+    shutil.copy(DATA / "anim.gif", tmp_path / "cat" / "idle.gif")
+    sprites = SpriteSet.load(PetConfig(character="cat", sprites_root=str(tmp_path)))
+    assert sprites.size == (12, 8)                  # 깨진 png 대신 gif
+
+
 def test_write_settings_merges(root):
     char = str(root / "cat")
     characters.write_settings(char, {"max_size": 99})
