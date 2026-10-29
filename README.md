@@ -111,6 +111,7 @@ desktop_pet/
 | 우클릭 메뉴 항목 | `pet/ui/menu.py`의 `default_items` |
 | 캐릭터 교체 | 우클릭 → 설정, 또는 `sprites/<이름>/` 폴더를 만들고 `--character <이름>` |
 | 설정 창에 보이는 동작 목록 | `pet/ui/characters.py`의 `ANIMATIONS` |
+| 설정 창에서 넣을 수 있는 이미지 한도 (크기·프레임 수) | `pet/ui/settings/images.py`의 `MAX_PIXELS`, `MAX_FRAMES` |
 | 이스터에그 캐릭터 | `pet/ui/easter_egg.py`의 `NAME` (찾기 전에는 설정 창에 안 보임) |
 | 이스터에그 조건 (연타 횟수·시간) | `pet/config.py`의 `easter_egg_clicks`, `easter_egg_seconds` |
 

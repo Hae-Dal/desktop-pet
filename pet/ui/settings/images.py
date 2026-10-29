@@ -13,6 +13,10 @@ from pet.ui.sprites import ANIMATED, EXTENSIONS
 
 PREVIEW = 64           # 미리보기 칸 크기(px)
 IMAGE_FILTER = "이미지 (%s)" % " ".join("*." + ext for ext in EXTENSIONS)
+# 고를 수 있는 이미지 한도. 원본 그대로 읽은 뒤 줄이므로 너무 크면 켤 때 멈추거나 메모리가 모자람
+# (4096x4096 한 장이 약 64MB). 폴더에 직접 넣은 파일은 검사하지 않음
+MAX_PIXELS = 4096      # 가로·세로 각각
+MAX_FRAMES = 300       # 움직이는 GIF·WebP 프레임 수
 
 
 class ImagePanel(QGroupBox):
@@ -78,8 +82,9 @@ class ImagePanel(QGroupBox):
         path, _ = QFileDialog.getOpenFileName(self, "이미지 선택", "", IMAGE_FILTER)
         if not path:
             return
-        if QImageReader(path).read().isNull():
-            QMessageBox.warning(self, "이미지 선택", "이미지를 읽을 수 없습니다.")
+        problem = check_image(path)
+        if problem:
+            QMessageBox.warning(self, "이미지 선택", problem)
             return
         self._choose(anim, path)
 
@@ -114,6 +119,23 @@ class ImagePanel(QGroupBox):
         else:
             pix = QPixmap(path)
             label.setPixmap(pix.scaled(_fit(pix.size()), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+
+def check_image(path: str) -> Optional[str]:
+    """넣을 수 없는 이미지면 그 이유, 괜찮으면 None. 크기·프레임 수는 이미지를 다 읽기 전에 확인."""
+    reader = QImageReader(path)
+    size = reader.size()
+    if not size.isValid():
+        return "이미지를 읽을 수 없습니다."
+    if max(size.width(), size.height()) > MAX_PIXELS:
+        return (f"이미지가 너무 큽니다 ({size.width()}×{size.height()}).\n"
+                f"가로·세로 {MAX_PIXELS}px 이하로 줄여서 넣어 주세요.")
+    if reader.imageCount() > MAX_FRAMES:
+        return (f"프레임이 너무 많습니다 ({reader.imageCount()}장).\n"
+                f"{MAX_FRAMES}장 이하로 줄여서 넣어 주세요.")
+    if reader.read().isNull():
+        return "이미지를 읽을 수 없습니다."
+    return None
 
 
 def _fit(size: QSize) -> QSize:

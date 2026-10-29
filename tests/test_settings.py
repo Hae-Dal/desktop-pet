@@ -1,13 +1,15 @@
 """설정 창: 화면에 있는 버튼·칸을 직접 눌러 보며 확인."""
 import json
+from pathlib import Path
 
 import pytest
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QImage
 from PyQt5.QtWidgets import QCheckBox, QListWidget, QPushButton, QSpinBox
 
 from pet.config import DEFAULT_LINES, PetConfig
 from pet.ui import prefs
-from pet.ui.settings import SettingsDialog
+from pet.ui.settings import SettingsDialog, images
 
 
 class Dialog:
@@ -110,3 +112,33 @@ def test_update_check_toggle(root):
     [c for c in ui.d.findChildren(QCheckBox) if "새 버전" in c.text()][0].setChecked(False)
     ui.apply()
     assert prefs.check_updates() is False
+
+
+DATA = Path(__file__).parent / "data"      # anim.gif: 12x8, 3프레임
+
+
+def image(path, w, h):
+    img = QImage(w, h, QImage.Format_ARGB32)
+    img.fill(0)
+    assert img.save(str(path))
+    return str(path)
+
+
+def test_image_check_accepts_normal_images(tmp_path, qapp):
+    assert images.check_image(image(tmp_path / "ok.png", 4096, 10)) is None
+    assert images.check_image(str(DATA / "anim.gif")) is None
+
+
+def test_image_check_rejects_too_large(tmp_path, qapp):
+    assert "너무 큽니다" in images.check_image(image(tmp_path / "wide.png", 4097, 10))
+    assert "너무 큽니다" in images.check_image(image(tmp_path / "tall.bmp", 10, 5000))
+
+
+def test_image_check_rejects_too_many_frames(qapp, monkeypatch):
+    monkeypatch.setattr(images, "MAX_FRAMES", 2)
+    assert "프레임이 너무 많습니다" in images.check_image(str(DATA / "anim.gif"))
+
+
+def test_image_check_rejects_broken_file(tmp_path, qapp):
+    (tmp_path / "broken.png").write_bytes(b"not a png")
+    assert "읽을 수 없습니다" in images.check_image(str(tmp_path / "broken.png"))
