@@ -76,13 +76,23 @@ def set_animation(char_dir: str, anim: str, src: str) -> None:
 read_settings = config.read_character_file
 
 
-def write_settings(char_dir: str, values: Dict) -> None:
+BACKUP_SUFFIX = ".bak"
+
+
+def write_settings(char_dir: str, values: Dict) -> Optional[str]:
     """기존 character.json에 values를 합쳐 저장 (설정 창에 없는 값은 유지).
 
-    읽을 때 예전 형식이 지금 형식으로 바뀌므로, 저장하면 파일도 지금 형식이 됨.
+    읽을 때 예전 형식은 지금 형식으로 바뀌고 형식이 틀린 값은 빠지므로, 저장하면 파일도 그렇게 됨.
+    기존 파일이 깨져서 읽을 수 없었으면 덮어쓰기 전에 character.json.bak으로 남기고 그 경로를 돌려줌.
     """
+    path = os.path.join(char_dir, config.CHARACTER_FILE)
+    backup = None
+    if config.character_file_error(char_dir):
+        backup = path + BACKUP_SUFFIX
+        shutil.copy2(path, backup)
     data = read_settings(char_dir)
     data.update(values)
-    with open(os.path.join(char_dir, config.CHARACTER_FILE), "w", encoding="utf-8") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
         f.write("\n")
+    return backup

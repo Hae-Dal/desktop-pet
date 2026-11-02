@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
 )
 
 from pet.config import PetConfig
-from pet.ui import characters, prefs
+from pet.ui import autostart, characters, prefs
 from pet.ui.settings.images import ImagePanel
 from pet.ui.settings.options import LinesPanel, OptionsPanel
 
@@ -57,6 +57,13 @@ class SettingsDialog(QDialog):
         self.check_updates = QCheckBox("새 버전이 나오면 알려 주기")
         self.check_updates.setChecked(prefs.check_updates())
         general.addWidget(self.check_updates)
+        self.autostart = QCheckBox("컴퓨터를 켜면 같이 시작")
+        if autostart.supported():
+            self.autostart.setChecked(autostart.is_enabled())
+        else:
+            self.autostart.setEnabled(False)
+            self.autostart.setText(self.autostart.text() + " (Windows용 exe에서만)")
+        general.addWidget(self.autostart)
 
         left = QVBoxLayout()
         left.addWidget(char_box, 1)
@@ -157,10 +164,17 @@ class SettingsDialog(QDialog):
     def _apply(self) -> None:
         self._remember_changes()
         self.images.apply()
-        for name, values in self._options.items():
-            characters.write_settings(self._char_dir(name), values)
+        backups = [characters.write_settings(self._char_dir(name), values)
+                   for name, values in self._options.items()]
+        backups = [b for b in backups if b]
         self._options.clear()
+        if backups:
+            QMessageBox.information(
+                self, "설정 저장", "읽을 수 없던 설정 파일을 새로 저장했습니다.\n원래 파일은 여기에 남겨 두었습니다:\n\n"
+                + "\n".join(backups))
         prefs.set_check_updates(self.check_updates.isChecked())
+        if autostart.supported() and self.autostart.isChecked() != autostart.is_enabled():
+            autostart.set_enabled(self.autostart.isChecked())
         if self._shown:
             prefs.set_active_character(self._shown)
             self.on_apply(self._shown)

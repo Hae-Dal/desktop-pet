@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QApplication
 
 from pet import __version__
 from pet.config import PetConfig
-from pet.ui import errorlog, prefs
+from pet.ui import autostart, errorlog, prefs
 from pet.ui.pet_widget import PetWidget
 from pet.ui.single_instance import SingleInstance
 from pet.ui.sprites import SpriteSet
@@ -57,6 +57,8 @@ def main() -> int:
     instance = SingleInstance()
     if not instance.acquire():            # 이미 실행 중이면 그 펫이 대신 인사하고 여기선 종료
         return 0
+    if autostart.supported():
+        autostart.follow_moved_exe()      # 새 버전을 다른 폴더에 풀었어도 다음 부팅 때 이 exe가 켜지게
     sprites = SpriteSet.load(config)
     pet = PetWidget(config, sprites, World())
     instance.activated.connect(pet.greet)

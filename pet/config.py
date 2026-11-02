@@ -3,7 +3,7 @@ import json
 import os
 import sys
 from dataclasses import dataclass, field, fields, replace
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 FROZEN = getattr(sys, "frozen", False)     # PyInstaller로 만든 exe로 실행 중
 
@@ -84,7 +84,7 @@ class PetConfig:
         return {**DEFAULT_TRANSITIONS.get(state, {}), **self.transitions.get(state, {})}
 
     def with_character_settings(self) -> "PetConfig":
-        """캐릭터 폴더의 character.json 값으로 덮어쓴 설정을 돌려줌 (파일이 없으면 그대로).
+        """캐릭터 폴더의 character.json 값으로 덮어쓴 설정을 돌려줌 (파일이 없거나 깨졌으면 그대로).
 
         예: {"faces_left": true, "max_size": 160, "frame_every": 4,
              "lines": {"idle": ["물범아 놀자!", "졸려..."]},
@@ -93,8 +93,6 @@ class PetConfig:
         data = read_character_file(self.character_dir)
         if "lines" in data:
             data["lines"] = {k: tuple(v) for k, v in data["lines"].items()}
-        if "transitions" in data:
-            data["transitions"] = _clean_transitions(data["transitions"], self.character_dir)
         allowed = {f.name for f in fields(self)} - {"character", "sprites_root"}
         unknown = set(data) - allowed
         if unknown:
@@ -103,31 +101,95 @@ class PetConfig:
         return replace(self, **values)
 
 
-def _clean_transitions(raw, where: str) -> Dict[str, Dict[str, float]]:
-    """숫자가 아닌 가중치는 버림 (손으로 고친 파일의 오타 하나로 펫이 멈추지 않게)."""
-    clean: Dict[str, Dict[str, float]] = {}
-    for state, weights in (raw.items() if isinstance(raw, dict) else ()):
-        if isinstance(weights, dict):
-            clean[state] = {n: float(w) for n, w in weights.items()
-                            if isinstance(w, (int, float)) and not isinstance(w, bool)}
-    if clean != raw:
-        print(f"{where}: character.json의 transitions 중 숫자가 아닌 값 무시", file=sys.stderr)
-    return clean
-
-
+_DEFAULTS = PetConfig()
 CHARACTER_FILE = "character.json"
+
+
+class CharacterFileError(Exception):
+    """character.json을 읽을 수 없음 (JSON 형식 오류 등)."""
 
 
 def read_character_file(char_dir: str) -> Dict:
     """캐릭터 폴더의 character.json 내용 (없으면 빈 dict). 예전 형식은 지금 형식으로 바꿔서 돌려줌.
 
+    손으로 고친 파일의 실수 하나로 프로그램이 켜지지 않거나 멈추지 않도록,
+    읽을 수 없는 파일은 없는 것처럼 빈 dict를, 형식이 틀린 값은 뺀 dict를 돌려줌 (경고만 출력).
+    읽을 수 없는 이유는 character_file_error로 알 수 있음.
     character.json은 여기서만 읽습니다. 쓰는 곳은 pet/ui/characters.py의 write_settings 하나.
     """
+    try:
+        data = _load(char_dir)
+    except CharacterFileError as e:
+        print(e, file=sys.stderr)
+        return {}
+    return _clean(data, char_dir)
+
+
+def character_file_error(char_dir: str) -> Optional[str]:
+    """character.json을 읽을 수 없으면 그 이유 (파일이 없거나 괜찮으면 None)."""
+    try:
+        _load(char_dir)
+    except CharacterFileError as e:
+        return str(e)
+    return None
+
+
+def _load(char_dir: str) -> Dict:
     path = os.path.join(char_dir, CHARACTER_FILE)
     if not os.path.isfile(path):
         return {}
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
-    if "idle_lines" in data:                # 0.9 이하 형식: 혼잣말 목록만 따로 있던 것
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError) as e:      # JSON 형식 오류, UTF-8이 아닌 파일도 ValueError
+        raise CharacterFileError(f"{path}: 읽을 수 없음 ({e})") from e
+    if not isinstance(data, dict):
+        raise CharacterFileError(f"{path}: {{ }}로 감싼 형식이 아님")
+    if "idle_lines" in data and isinstance(data.get("lines", {}), dict):   # 0.9 이하 형식
         data.setdefault("lines", {}).setdefault("idle", data.pop("idle_lines"))
     return data
+
+
+_BAD = object()
+
+
+def _clean(data: Dict, where: str) -> Dict:
+    """PetConfig에 있는 설정 중 형식이 틀린 값은 빼거나 고침 (모르는 설정은 그대로 둠)."""
+    clean, ignored = {}, []
+    for key, value in data.items():
+        fixed = _fix(key, value) if hasattr(_DEFAULTS, key) else value
+        if fixed is not _BAD:
+            clean[key] = fixed
+        if fixed is _BAD or fixed != value:
+            ignored.append(key)
+    if ignored:
+        print(f"{where}: character.json의 형식이 틀린 값 무시 {ignored}", file=sys.stderr)
+    return clean
+
+
+def _is_number(v) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _fix(key: str, value):
+    """기본값과 같은 형식이면 value (일부만 틀렸으면 그 부분을 뺀 것), 아니면 _BAD."""
+    default = getattr(_DEFAULTS, key)
+    if key == "lines":                      # {"상황": ["대사", ...]}
+        if not isinstance(value, dict):
+            return _BAD
+        return {k: [t for t in v if isinstance(t, str)] for k, v in value.items() if isinstance(v, list)}
+    if key == "transitions":                # {"지금 행동": {"다음 행동": 가중치}}
+        if not isinstance(value, dict):
+            return _BAD
+        return {state: {n: float(w) for n, w in weights.items() if _is_number(w)}
+                for state, weights in value.items() if isinstance(weights, dict)}
+    if isinstance(default, bool):
+        return value if isinstance(value, bool) else _BAD
+    if _is_number(default):
+        return value if _is_number(value) else _BAD
+    if isinstance(default, str):
+        return value if isinstance(value, str) else _BAD
+    if isinstance(default, tuple):          # (최소, 최대) 같은 숫자 묶음
+        ok = isinstance(value, list) and len(value) == len(default) and all(map(_is_number, value))
+        return value if ok else _BAD
+    return value

@@ -1,7 +1,9 @@
 """설정값과 캐릭터별 설정(character.json)."""
 import json
 
-from pet.config import DEFAULT_LINES, DEFAULT_TRANSITIONS, PetConfig
+import pytest
+
+from pet.config import DEFAULT_LINES, DEFAULT_TRANSITIONS, PetConfig, character_file_error
 
 
 def make_character(tmp_path, data, name="cat"):
@@ -65,3 +67,46 @@ def test_transition_typos_are_ignored(tmp_path):
                             ).with_character_settings()
     assert config.transitions == {"idle": {"sit": 5.0}}
     assert config.transitions_for("idle")["sleep"] == DEFAULT_TRANSITIONS["idle"]["sleep"]
+
+
+def broken_character(tmp_path, text, name="cat"):
+    folder = tmp_path / name
+    folder.mkdir()
+    (folder / "character.json").write_text(text, encoding="utf-8")
+    return PetConfig(character=name, sprites_root=str(tmp_path))
+
+
+@pytest.mark.parametrize("text", ['{"max_size": 100,', "[1, 2]", ""])
+def test_unreadable_file_starts_with_defaults(tmp_path, text):
+    config = broken_character(tmp_path, text)
+    assert config.with_character_settings() == config
+    assert character_file_error(config.character_dir)
+
+
+def test_not_utf8_file_is_unreadable(tmp_path):
+    config = broken_character(tmp_path, "")
+    (tmp_path / "cat" / "character.json").write_bytes('{"lines": {"idle": ["안녕"]}}'.encode("cp949"))
+    assert config.with_character_settings() == config
+    assert character_file_error(config.character_dir)
+
+
+def test_good_or_missing_file_has_no_error(tmp_path):
+    assert character_file_error(str(tmp_path)) is None
+    assert character_file_error(make_character(tmp_path, {"max_size": 1}).character_dir) is None
+
+
+def test_wrong_types_are_ignored_one_by_one(tmp_path):
+    config = make_character(tmp_path, {
+        "max_size": "big", "faces_left": 1, "speed": 5, "idle_ticks": [10], "sit_ticks": [5, 9],
+        "lines": {"idle": ["안녕", 3], "sleep": "쿨쿨"}, "transitions": [1],
+    }).with_character_settings()
+    defaults = PetConfig()
+    assert (config.max_size, config.faces_left, config.idle_ticks) == (
+        defaults.max_size, defaults.faces_left, defaults.idle_ticks)
+    assert config.speed == 5 and config.sit_ticks == (5, 9)
+    assert config.lines == {"idle": ("안녕",)} and config.transitions == {}
+
+
+def test_lines_not_a_dict_with_old_format(tmp_path):
+    config = make_character(tmp_path, {"lines": "x", "idle_lines": ["예전"]}).with_character_settings()
+    assert config.lines == {}

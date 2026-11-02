@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pytest
 from PyQt5.QtWidgets import QApplication
 
-from pet.ui import prefs
+from pet.ui import autostart, prefs
 
 
 @pytest.fixture(scope="session")
@@ -27,6 +27,7 @@ def qapp():
 def separate_settings(tmp_path, monkeypatch):
     """테스트마다 빈 임시 파일에 저장. 사용자의 실제 저장값(레지스트리 등)은 읽지도 쓰지도 않음."""
     monkeypatch.setattr(prefs, "override_file", str(tmp_path / "prefs.ini"))
+    monkeypatch.setattr(autostart, "override_file", str(tmp_path / "autostart.ini"))   # 시작 프로그램 등록도
 
 
 class FakeWorld:
