@@ -2,12 +2,14 @@
 
 새 버전 확인은 updater, 이스터에그 판정은 easter_egg, 항상 위 유지는 topmost, 트레이 아이콘은 tray에 있습니다.
 """
+from datetime import datetime
+
 from PyQt5.QtCore import QPoint, Qt, QTimer
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QApplication, QDialog, QWidget
 
 from pet import __version__
-from pet.config import PetConfig, character_file_error
+from pet.config import PetConfig, character_file_error, greeting_for
 from pet.core.context import PetContext
 from pet.core.states import StateMachine, TimedState, build_states
 from pet.ui import changelog, easter_egg, menu, topmost, tray, updater
@@ -17,6 +19,7 @@ from pet.ui.sprites import SpriteSet
 from pet.ui.world import World
 
 KEEP_IN_FRONT_MS = 1000
+GREETING_TICKS = 120
 
 
 class PetWidget(QWidget):
@@ -36,16 +39,19 @@ class PetWidget(QWidget):
         self._changelog = None
         self._settings = None
 
+        self.ctx.react_line(greeting_for(datetime.now().hour), GREETING_TICKS)
+
         self.updates = updater.UpdateWatcher(self)  # 새 버전이 있으면 우클릭 메뉴에 받기 항목이 생김
         self.updates.found.connect(
-            lambda v: self.ctx.say(f"새 버전 v{v}이 나왔어!\n우클릭 → 새 버전 받기", 200))
+            lambda v: self.ctx.notify(f"새 버전 v{v}이 나왔어!\n우클릭 → 새 버전 받기", 200))
         if changelog.is_new_version():
-            self.ctx.say(f"v{__version__}로 업데이트됐어!\n우클릭 → 업데이트 내역", 150)
+            self.ctx.notify(f"v{__version__}로 업데이트됐어!\n우클릭 → 업데이트 내역", 150)
         self._warn_broken_settings()
 
         self._drag_offset = QPoint()
         self._press_pos = QPoint()
         self._moved = False
+        self._woken_by_press = False
         self._clicks = easter_egg.RapidClicks(config.easter_egg_clicks, config.easter_egg_seconds)
 
         self._timer = QTimer(self)
@@ -73,6 +79,7 @@ class PetWidget(QWidget):
     def _tick(self) -> None:
         self.machine.update()
         self.ctx.tick_bubble()
+        self.ctx.untouched_ticks += 1
         self.move(self.ctx.x, self.ctx.y)
         self._sync_bubble()
         self.update()
@@ -112,8 +119,8 @@ class PetWidget(QWidget):
         """프로그램을 또 실행하려고 했을 때: 이미 여기 있다고 알림 (숨겨 뒀으면 다시 보임)."""
         if self.is_hidden:
             self.toggle_hidden()
-        self.jump()                                  # 자는 중이면 깨면서 말풍선이 지워지므로 먼저
-        self.ctx.say("나 이미 여기 있어!", 90)
+        self.jump()
+        self.ctx.notify("나 이미 여기 있어!", 90)
 
     def change_character(self, name: str) -> None:
         """설정 창에서 적용: 이미지와 캐릭터별 설정을 다시 읽어 바로 바꿈."""
@@ -128,7 +135,7 @@ class PetWidget(QWidget):
     def _warn_broken_settings(self) -> None:
         """character.json이 깨져서 기본 설정으로 켜졌으면 알림 (고칠 때까지 켤 때마다)."""
         if character_file_error(self.config.character_dir):
-            self.ctx.say("캐릭터 설정 파일을 읽을 수 없어서\n기본 설정으로 켰어", 200)
+            self.ctx.notify("캐릭터 설정 파일을 읽을 수 없어서\n기본 설정으로 켰어", 200)
 
     def show_settings(self) -> None:
         if self._settings is None or not self._settings.isVisible():
@@ -150,14 +157,15 @@ class PetWidget(QWidget):
 
     # ---------- 마우스 ----------
     def mousePressEvent(self, e) -> None:
+        self.ctx.untouched_ticks = 0
         if e.button() == Qt.LeftButton:
             self._moved = False
             self._press_pos = e.globalPos()
             self._drag_offset = e.globalPos() - self.frameGeometry().topLeft()
-            was_sleeping = self.machine.current_name == "sleep"
+            self._woken_by_press = self.machine.current_name == "sleep"
             self.machine.change("drag")
-            if was_sleeping:
-                self.ctx.say("으앗! 깜짝이야", 60)
+            if self._woken_by_press:
+                self.ctx.react_line("woken")
         elif e.button() == Qt.RightButton:
             menu.popup(self, menu.default_items(self), e.globalPos())
 
@@ -167,6 +175,8 @@ class PetWidget(QWidget):
                 if (e.globalPos() - self._press_pos).manhattanLength() < QApplication.startDragDistance():
                     return
                 self._moved = True
+                if not self._woken_by_press:    # 깼을 때 한 말을 바로 덮지 않게
+                    self.ctx.react_line("grab")
             pos = e.globalPos() - self._drag_offset
             self.ctx.x, self.ctx.y = pos.x(), pos.y()
             self.move(pos)
@@ -177,6 +187,10 @@ class PetWidget(QWidget):
         clicked = not self._moved
         # 그냥 클릭 = 점프, 끌어서 놓으면 중력으로 떨어짐
         self.machine.change("jump" if clicked and self.ctx.on_ground else "fall")
+        if not clicked:
+            self.ctx.react_line("drop")
+        elif not self._woken_by_press:
+            self.ctx.react_line("click")
         if clicked and self._clicks.click():
             self._find_easter_egg()
 
@@ -185,7 +199,7 @@ class PetWidget(QWidget):
             return                                   # 이미 그 캐릭터거나, 이미지가 없는 PC
         easter_egg.reveal(self.config.sprites_root)
         self.change_character(easter_egg.NAME)
-        self.ctx.say("짠! 물범이랑 같이 왔어", 120)
+        self.ctx.notify("짠! 물범이랑 같이 왔어", 120)
 
 
 def _bring_up(dialog: QDialog) -> None:

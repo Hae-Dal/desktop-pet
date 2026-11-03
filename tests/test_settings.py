@@ -5,11 +5,11 @@ from pathlib import Path
 import pytest
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage
-from PyQt5.QtWidgets import QCheckBox, QListWidget, QPushButton, QSpinBox
+from PyQt5.QtWidgets import QCheckBox, QComboBox, QListWidget, QPushButton, QSpinBox
 
 from pet.config import DEFAULT_LINES, PetConfig
 from pet.ui import prefs
-from pet.ui.settings import SettingsDialog, dialog, images
+from pet.ui.settings import SettingsDialog, dialog, images, options
 
 
 class Dialog:
@@ -30,6 +30,10 @@ class Dialog:
 
     def select(self, name):
         self.characters.setCurrentItem(self.characters.findItems(name, Qt.MatchExactly)[0])
+
+    def situation(self, name):
+        combo = self.d.findChild(QComboBox)
+        combo.setCurrentIndex(combo.findData(name))
 
     def line_texts(self):
         return [self.lines.item(i).text() for i in range(self.lines.count())]
@@ -97,6 +101,52 @@ def test_clearing_all_lines_means_default(root):
     ui.apply()
     config = PetConfig(character="old", sprites_root=str(root)).with_character_settings()
     assert config.lines_for("idle") == DEFAULT_LINES["idle"]
+
+
+def test_every_situation_can_be_chosen():
+    assert {name for name, _ in options.LINE_SITUATIONS} == set(DEFAULT_LINES)
+
+
+def test_lines_are_kept_per_situation(root):
+    ui = Dialog(root)
+    ui.situation("click")
+    assert ui.line_texts() == list(DEFAULT_LINES["click"])
+    ui.add_line("클릭 대사")
+    ui.situation("idle")
+    assert ui.line_texts() == list(DEFAULT_LINES["idle"])
+    ui.situation("click")
+    assert ui.line_texts()[-1] == "클릭 대사"
+    ui.apply()
+    assert ui.json("a") == {"lines": {"click": list(DEFAULT_LINES["click"]) + ["클릭 대사"]}}
+
+
+def test_saving_one_situation_keeps_the_others(root):
+    ui = Dialog(root, "old")
+    ui.situation("grab")
+    ui.lines.item(0).setText("잡지 마")
+    ui.apply()
+    saved = ui.json("old")["lines"]
+    assert saved["idle"] == ["옛날 대사"] and saved["grab"][0] == "잡지 마"
+    assert set(saved) == {"idle", "grab"}
+
+
+def test_unsaved_situation_edits_survive_switching_characters(root):
+    ui = Dialog(root)
+    ui.situation("click")
+    ui.add_line("임시")
+    ui.select("old")
+    ui.select("a")
+    assert ui.line_texts()[-1] == "임시"
+
+
+def test_situation_stays_when_switching_characters(root):
+    ui = Dialog(root)
+    ui.situation("click")
+    ui.select("old")
+    assert ui.line_texts() == list(DEFAULT_LINES["click"])
+    before = ui.json("old")
+    ui.apply()
+    assert ui.json("old") == before                  # 고치지 않았으면 파일도 그대로
 
 
 def test_options_are_saved(root):
