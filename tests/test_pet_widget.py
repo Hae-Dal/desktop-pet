@@ -5,8 +5,9 @@ from PyQt5.QtGui import QColor, QMouseEvent, QPixmap
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication
 
+from pet import __version__
 from pet import config as config_module
-from pet.config import PetConfig
+from pet.config import DEFAULT_LINES, PetConfig, greeting_for
 from pet.ui import easter_egg, menu, pet_widget, prefs
 from pet.ui.sprites import SpriteSet
 from pet.ui.world import World
@@ -15,6 +16,7 @@ from pet.ui.world import World
 @pytest.fixture
 def make_pet(qapp, monkeypatch):
     prefs.set_check_updates(False)   # 테스트 중 인터넷 확인 안 함
+    prefs.set_last_seen_version(__version__)     # 업데이트 안내가 대사를 막지 않게
     pets = []
 
     def make(config=None):
@@ -57,8 +59,46 @@ def test_click_wakes_sleeping_pet(make_pet):
     pet = make_pet()
     pet.machine.change("sleep")
     QTest.mousePress(pet, Qt.LeftButton, pos=QPoint(10, 10))
-    assert pet.ctx.bubble_text == "으앗! 깜짝이야"
+    assert pet.ctx.bubble_text in DEFAULT_LINES["woken"]
     QTest.mouseRelease(pet, Qt.LeftButton, pos=QPoint(10, 10))
+    assert pet.ctx.bubble_text in DEFAULT_LINES["woken"]     # 클릭 대사로 바로 덮이지 않음
+
+
+def test_click_says_a_line(make_pet):
+    pet = make_pet()
+    QTest.mouseClick(pet, Qt.LeftButton, pos=QPoint(10, 10))
+    assert pet.ctx.bubble_text in DEFAULT_LINES["click"]
+
+
+def test_greets_for_the_time_when_started(make_pet):
+    pet = make_pet()
+    assert pet.ctx.bubble_text in DEFAULT_LINES[greeting_for(pet_widget.datetime.now().hour)]
+
+
+def test_silent_when_chance_is_zero(make_pet):
+    pet = make_pet(PetConfig(idle_chat_chance=0.0))
+    assert pet.ctx.bubble_text == ""
+    QTest.mouseClick(pet, Qt.LeftButton, pos=QPoint(10, 10))
+    assert pet.ctx.bubble_text == ""
+
+
+def test_click_does_not_cover_a_notice(make_pet):
+    pet = make_pet()
+    pet.ctx.notify("안내", 100)
+    QTest.mouseClick(pet, Qt.LeftButton, pos=QPoint(10, 10))
+    assert pet.ctx.bubble_text == "안내"
+    ticks(pet, 100)
+    assert pet.ctx.bubble_text != "안내"
+    QTest.mouseClick(pet, Qt.LeftButton, pos=QPoint(10, 10))
+    assert pet.ctx.bubble_text in DEFAULT_LINES["click"]
+
+
+def test_touching_resets_lonely_count(make_pet):
+    pet = make_pet()
+    ticks(pet, 5)
+    assert pet.ctx.untouched_ticks == 5
+    QTest.mouseClick(pet, Qt.LeftButton, pos=QPoint(10, 10))
+    assert pet.ctx.untouched_ticks == 0
 
 
 def mouse(pet, kind, pos, buttons=Qt.LeftButton):
@@ -73,7 +113,9 @@ def test_drag_moves_then_falls(make_pet):
     mouse(pet, QEvent.MouseButtonPress, QPoint(10, 10))
     for step in range(1, 6):        # 펫이 따라 움직이므로 펫 기준 좌표는 매번 같은 만큼씩
         mouse(pet, QEvent.MouseMove, QPoint(10 + 10, 10 - 20))
+    assert pet.ctx.bubble_text in DEFAULT_LINES["grab"]
     mouse(pet, QEvent.MouseButtonRelease, QPoint(10, 10), Qt.NoButton)
+    assert pet.ctx.bubble_text in DEFAULT_LINES["drop"]
     assert pet.machine.current_name == "fall" and pet.ctx.y < start.y()
     for _ in range(200):                # 착지한 순간을 확인 (그 뒤엔 스스로 점프할 수도 있음)
         ticks(pet, 1)

@@ -1,4 +1,4 @@
-"""설정 창의 캐릭터별 설정 칸: '옵션'과 '혼잣말'.
+"""설정 창의 캐릭터별 설정 칸: '옵션'과 '대사'.
 
 두 칸 모두 같은 방식으로 다룹니다.
     load(values)    기본값 + character.json + 아직 적용 안 한 변경을 합친 값을 칸에 보여 줌
@@ -8,7 +8,7 @@ from typing import Dict, List
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QCheckBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
+    QCheckBox, QComboBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
     QPushButton, QSpinBox, QVBoxLayout,
 )
 
@@ -21,14 +21,32 @@ FRAME_OPTIONS = [
     ("sleep_frame_every", "잠자기 프레임 간격"),
 ]
 
-# 혼잣말 칸에서 고칠 수 있는 상황. 나중에 상황을 늘리면 고를 수 있게 하면 됨
-LINE_SITUATION = "idle"
+# 대사 칸에서 고를 수 있는 상황: (상황 이름, 표시 이름). 순서대로 표시됨 (DEFAULT_LINES의 상황을 모두 적음)
+LINE_SITUATIONS = [
+    ("idle", "혼잣말"),
+    ("lonely", "오래 안 만졌을 때"),
+    ("click", "클릭했을 때"),
+    ("grab", "잡아서 끌 때"),
+    ("drop", "끌다가 놓았을 때"),
+    ("sleep", "자는 동안"),
+    ("woken", "자다가 클릭으로 깼을 때"),
+    ("wake", "스스로 일어났을 때"),
+    ("morning", "아침에 켰을 때 (5~11시)"),
+    ("afternoon", "낮에 켰을 때 (11~17시)"),
+    ("evening", "저녁에 켰을 때 (17~22시)"),
+    ("night", "밤에 켰을 때 (22~5시)"),
+]
 
 _DEFAULTS = PetConfig()
 
 
 def _changed(values: Dict, saved: Dict) -> Dict:
     return {k: v for k, v in values.items() if saved.get(k, getattr(_DEFAULTS, k)) != v}
+
+
+def _shown_lines(lines: Dict, situation: str) -> List[str]:
+    """그 상황에서 칸에 보여 줄 대사 (정한 게 없거나 비었으면 기본 대사)."""
+    return list(lines.get(situation) or DEFAULT_LINES[situation])
 
 
 class OptionsPanel(QGroupBox):
@@ -66,7 +84,13 @@ class OptionsPanel(QGroupBox):
 
 class LinesPanel(QGroupBox):
     def __init__(self):
-        super().__init__("혼잣말")
+        super().__init__("대사")
+        self._texts: Dict[str, List[str]] = {}      # 상황 -> 칸의 대사 (아직 적용 안 한 변경 포함)
+        self.situation = QComboBox()
+        for name, label in LINE_SITUATIONS:
+            self.situation.addItem(label, name)
+        self._shown_situation = self.situation.currentData()
+        self.situation.currentIndexChanged.connect(self._show_situation)
         self.list = QListWidget()
         add = QPushButton("추가")
         add.clicked.connect(self._add)
@@ -80,9 +104,11 @@ class LinesPanel(QGroupBox):
         self.chance.setSuffix(" %")
         chance_row = QFormLayout()
         chance_row.addRow("말할 확률:", self.chance)
-        note = QLabel("두 번 클릭하면 고칠 수 있어요.\n모두 지우면 기본 대사로 돌아갑니다.")
+        note = QLabel("두 번 클릭하면 고칠 수 있어요.\n모두 지우면 기본 대사로 돌아갑니다.\n"
+                      "혼자 하는 말은 이 확률로, 만지거나 켰을 때는 항상 말해요.\n0%면 말하지 않아요.")
         note.setEnabled(False)
         layout = QVBoxLayout(self)
+        layout.addWidget(self.situation)
         layout.addWidget(self.list)
         layout.addLayout(buttons)
         layout.addLayout(chance_row)
@@ -90,17 +116,28 @@ class LinesPanel(QGroupBox):
 
     def load(self, values: Dict) -> None:
         self.chance.setValue(round(float(values["idle_chat_chance"]) * 100))
-        self.list.clear()
-        for text in values["lines"].get(LINE_SITUATION) or DEFAULT_LINES[LINE_SITUATION]:
-            self._append(text)
+        self._texts = {name: _shown_lines(values["lines"], name) for name, _ in LINE_SITUATIONS}
+        self._fill_list()
 
     def changes(self, saved: Dict) -> Dict:
         changed = _changed({"idle_chat_chance": self.chance.value() / 100}, saved)
+        self._texts[self._shown_situation] = self.texts()
         saved_lines = saved.get("lines", {})
-        edited = self.texts()
-        if edited != list(saved_lines.get(LINE_SITUATION) or DEFAULT_LINES[LINE_SITUATION]):
-            changed["lines"] = {**saved_lines, LINE_SITUATION: edited}   # 다른 상황 대사는 그대로 둠
+        edited = {name: texts for name, texts in self._texts.items()
+                  if texts != _shown_lines(saved_lines, name)}
+        if edited:
+            changed["lines"] = {**saved_lines, **edited}    # 바꾸지 않은 상황은 그대로 둠
         return changed
+
+    def _show_situation(self) -> None:
+        self._texts[self._shown_situation] = self.texts()
+        self._shown_situation = self.situation.currentData()
+        self._fill_list()
+
+    def _fill_list(self) -> None:
+        self.list.clear()
+        for text in self._texts[self._shown_situation]:
+            self._append(text)
 
     def texts(self) -> List[str]:
         """대사 칸 내용 (빈 줄은 뺌). 비어 있으면 기본 대사를 쓰라는 뜻."""

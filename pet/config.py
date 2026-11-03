@@ -19,7 +19,29 @@ BUNDLED_SPRITES_DIR = os.path.join(BUNDLE_DIR, "bundled_sprites")
 # 새 상황을 만들려면 여기에 이름을 추가하고, 그 상황에서 ctx.say_line("이름")을 부르면 됩니다.
 DEFAULT_LINES: Dict[str, Tuple[str, ...]] = {
     "idle": ("심심해~", "뭐 하고 있어?", "배고프다...", "산책 갈까?"),   # 가만히 있다가 혼잣말
+    "lonely": ("나 좀 봐 줘~", "놀아 줘!", "나 여기 있어..."),           # 오래 안 만졌을 때
+    "click": ("히히", "왜 불러?", "간지러워!", "응?"),                   # 클릭했을 때
+    "grab": ("어어?", "어디 가는 거야?", "내려 줘~"),                    # 잡아서 끌 때
+    "drop": ("으아악!", "살살 놔 줘~", "떨어진다~"),                     # 끌다가 놓았을 때
+    "sleep": ("Zzz...",),                                                # 자는 동안 계속 표시
+    "woken": ("으앗! 깜짝이야", "자는데 왜 깨워~"),                      # 자다가 클릭으로 깼을 때
+    "wake": ("잘 잤다~", "하암..."),                                     # 스스로 일어났을 때
+    "morning": ("좋은 아침!", "오늘도 힘내자!"),                         # 켰을 때 인사 (시간대는 greeting_for)
+    "afternoon": ("안녕!", "점심은 먹었어?"),
+    "evening": ("오늘도 수고했어!", "저녁은 먹었어?"),
+    "night": ("아직 안 자?", "너무 늦게까지 있지 마~"),
 }
+
+
+def greeting_for(hour: int) -> str:
+    """그 시각(0~23시)에 켰을 때의 인사 상황."""
+    if 5 <= hour < 11:
+        return "morning"
+    if 11 <= hour < 17:
+        return "afternoon"
+    if 17 <= hour < 22:
+        return "evening"
+    return "night"
 
 # 행동이 끝났을 때 다음 행동을 고르는 가중치. 숫자가 클수록 자주 선택되고, 0이면 안 함.
 # 캐릭터는 character.json의 "transitions"에 바꿀 칸만 적으면 됩니다 (예: 잠꾸러기 {"idle": {"sleep": 3}}).
@@ -65,7 +87,8 @@ class PetConfig:
     easter_egg_seconds: float = 3.0                 # 이 시간(초) 안에 클릭하면 숨은 캐릭터 등장
 
     # --- 말풍선 ---
-    idle_chat_chance: float = 0.3                   # idle 상태로 들어갈 때 혼잣말할 확률
+    idle_chat_chance: float = 0.3                   # 혼잣말할 확률 (0이면 만져도 말하지 않음, Zzz만 표시)
+    lonely_ticks: int = 20000                       # 이만큼 안 만지면 심심하다고 함 (약 10분, 말한 뒤 다시 셈)
     lines: Dict[str, Tuple[str, ...]] = field(default_factory=dict)   # 상황 -> 대사 (없는 상황은 DEFAULT_LINES)
 
     # --- 성격 ---

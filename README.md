@@ -54,6 +54,8 @@ python main.py [--character 폴더이름] [--size 128]
 파일이 깨져서 읽을 수 없으면(쉼표 빠짐 등) 기본 설정으로 켜지고 펫이 말풍선으로 알려 줍니다. 이 상태에서 설정 창으로 저장하면
 원래 파일은 `character.json.bak`으로 남깁니다. 형식이 틀린 값(예: `"max_size": "big"`)은 그 값만 무시합니다.
 
+`lines`의 상황 이름은 `pet/config.py`의 `DEFAULT_LINES`에 있습니다. 적은 상황만 바뀌고, 나머지는 기본 대사를 씁니다. `idle_chat_chance`는 혼자 하는 말(혼잣말, 심심할 때, 스스로 일어났을 때)의 확률이고, 만지거나 켰을 때는 항상 말합니다. 0이면 자는 동안의 표시 말고는 말하지 않습니다.
+
 `faces_left`는 이미지 속 캐릭터가 왼쪽을 보고 있을 때 `true`로 둡니다. 도트 그림은 축소하면 뭉개지므로 `max_size`를 가장 큰 이미지보다 크게 잡으세요.
 
 성격은 이 값들로 만듭니다.
@@ -88,7 +90,7 @@ desktop_pet/
         ├── pet_widget.py      펫 창: 그리기·마우스 입력
         ├── bubble.py          말풍선 (펫을 따라다니는 별도 투명 창)
         ├── menu.py            우클릭 메뉴 항목 목록
-        ├── settings/          설정 창 (캐릭터 목록, 이미지·옵션·혼잣말 칸)
+        ├── settings/          설정 창 (캐릭터 목록, 이미지·옵션·대사 칸)
         ├── characters.py      캐릭터 폴더 관리 (목록, 이미지 넣기·지우기, character.json 저장)
         ├── easter_egg.py      이스터에그 (연타 판정, 숨은 캐릭터 꺼내기)
         ├── prefs.py           앱이 기억하는 값 (마지막 캐릭터, 새 버전 확인 켜기 등)
@@ -111,7 +113,7 @@ desktop_pet/
 |---|---|
 | 속도·크기·점프 높이·지속 시간 | `pet/config.py` |
 | 애니메이션 프레임 속도 | `pet/config.py`의 `frame_every` (기본), `walk_frame_every`, `sleep_frame_every` |
-| 혼잣말 내용·확률 | 설정 창의 혼잣말 칸, 또는 `character.json`의 `lines`, `idle_chat_chance` (기본 대사는 `pet/config.py`의 `DEFAULT_LINES`) |
+| 상황별 대사·말할 확률 | 설정 창의 대사 칸, 또는 `character.json`의 `lines`, `idle_chat_chance` (기본 대사는 `pet/config.py`의 `DEFAULT_LINES`) |
 | 행동 확률 | `pet/config.py`의 `DEFAULT_TRANSITIONS` (캐릭터별로는 `character.json`의 `transitions`) |
 | 새 행동 추가 | `pet/core/states/`에 파일 추가 → `__init__.py`의 `STATE_CLASSES` 등록 → `pet/config.py`의 `DEFAULT_TRANSITIONS`에 확률 추가 → `sprites/<캐릭터>/<이름>_1.png` (자세한 방법은 `pet/core/states/__init__.py`) |
 | 우클릭 메뉴 항목 | `pet/ui/menu.py`의 `default_items` |

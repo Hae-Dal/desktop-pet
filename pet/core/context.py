@@ -30,6 +30,9 @@ class PetContext:
 
         self.bubble_text = ""      # 말풍선 내용 (빈 문자열이면 숨김)
         self.bubble_ticks = 0      # 말풍선이 남은 tick 수
+        self.bubble_is_notice = False   # 프로그램 안내(notify) 중이면 대사로 덮어쓰지 않음
+
+        self.untouched_ticks = 0   # 마지막으로 만진 뒤 지난 tick 수
 
     # ---------- 위치 ----------
     @property
@@ -51,8 +54,16 @@ class PetContext:
 
     # ---------- 말풍선 ----------
     def say(self, text: str, ticks: int = 90) -> None:
+        """펫의 말. 프로그램 안내가 떠 있는 동안에는 말하지 않음."""
+        if not self.bubble_is_notice:
+            self.bubble_text = text
+            self.bubble_ticks = ticks
+
+    def notify(self, text: str, ticks: int = 90) -> None:
+        """프로그램 안내 (새 버전 등). 끝날 때까지 대사로 덮이거나 지워지지 않음."""
         self.bubble_text = text
         self.bubble_ticks = ticks
+        self.bubble_is_notice = True
 
     def say_line(self, situation: str, ticks: int = 90) -> None:
         """그 상황의 대사 중 하나를 무작위로 말함 (대사가 없으면 아무것도 안 함)."""
@@ -60,12 +71,33 @@ class PetContext:
         if lines:
             self.say(random.choice(lines), ticks)
 
+    def react_line(self, situation: str, ticks: int = 90) -> None:
+        """만졌을 때나 켰을 때의 대사: 항상 말함 (말할 확률이 0이면 말하지 않음)."""
+        if self.config.idle_chat_chance > 0:
+            self.say_line(situation, ticks)
+
+    def chat_line(self, situation: str) -> None:
+        """혼자 하는 대사: 말할 확률에 따라."""
+        if random.random() < self.config.idle_chat_chance:
+            self.say_line(situation)
+
+    def chat(self) -> None:
+        """혼잣말. 오래 안 만졌으면 심심하다고 하고, 다시 시간을 셈."""
+        if self.untouched_ticks >= self.config.lonely_ticks:
+            if random.random() < self.config.idle_chat_chance:
+                self.untouched_ticks = 0
+                self.say_line("lonely")
+        else:
+            self.chat_line("idle")
+
     def clear_bubble(self) -> None:
-        self.bubble_text = ""
-        self.bubble_ticks = 0
+        if not self.bubble_is_notice:
+            self.bubble_text = ""
+            self.bubble_ticks = 0
 
     def tick_bubble(self) -> None:
         if self.bubble_ticks > 0:
             self.bubble_ticks -= 1
             if self.bubble_ticks == 0:
                 self.bubble_text = ""
+                self.bubble_is_notice = False
