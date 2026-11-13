@@ -47,7 +47,8 @@ python main.py [--character 폴더이름] [--size 128]
     "frame_every": 4,
     "idle_chat_chance": 0.6,
     "lines": {"idle": ["물범아 놀자!", "졸려..."]},
-    "transitions": {"idle": {"sleep": 3}, "sit": {"sleep": 3}}
+    "transitions": {"idle": {"sleep": 3}, "sit": {"sleep": 3}},
+    "often": {"walk": 2, "jump": 0}
 }
 ```
 
@@ -58,7 +59,7 @@ python main.py [--character 폴더이름] [--size 128]
 
 `faces_left`는 이미지 속 캐릭터가 왼쪽을 보고 있을 때 `true`로 둡니다. 도트 그림은 축소하면 뭉개지므로 `max_size`를 가장 큰 이미지보다 크게 잡으세요.
 
-성격은 이 값들로 만듭니다.
+성격은 설정 창의 성격 칸(행동별로 얼마나 자주 할지, 걷는 속도)에서 정하거나, 이 값들로 만듭니다.
 
 | 성격 | 설정 |
 |---|---|
@@ -90,7 +91,7 @@ desktop_pet/
         ├── pet_widget.py      펫 창: 그리기·마우스 입력
         ├── bubble.py          말풍선 (펫을 따라다니는 별도 투명 창)
         ├── menu.py            우클릭 메뉴 항목 목록
-        ├── settings/          설정 창 (캐릭터 목록, 이미지·옵션·대사 칸)
+        ├── settings/          설정 창 (캐릭터 목록, 이미지·옵션·성격·대사 칸)
         ├── characters.py      캐릭터 폴더 관리 (목록, 이미지 넣기·지우기, character.json 저장)
         ├── easter_egg.py      이스터에그 (연타 판정, 숨은 캐릭터 꺼내기)
         ├── prefs.py           앱이 기억하는 값 (마지막 캐릭터, 새 버전 확인 켜기 등)

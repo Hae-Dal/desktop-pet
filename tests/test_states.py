@@ -221,6 +221,14 @@ def test_sleepy_character_sleeps_more(world):
     assert sleepy > normal * 2
 
 
+def test_often_changes_behavior(world):
+    seen = run_states(PetConfig(often={"walk": 0, "jump": 0}), world)
+    assert "walk" not in seen and "jump" not in seen and "sit" in seen
+    normal = run_states(PetConfig(), world).count("sleep")
+    sleepy = run_states(PetConfig(often={"sleep": 4}), world).count("sleep")
+    assert sleepy > normal
+
+
 def test_all_zero_weights_keep_current_behavior(world):
     seen = run_states(PetConfig(transitions={"idle": {"walk": 0, "sit": 0, "sleep": 0, "jump": 0}}), world, 500)
     assert set(seen) == {"idle"}

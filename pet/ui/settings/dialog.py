@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import (
 from pet.config import PetConfig
 from pet.ui import autostart, characters, prefs
 from pet.ui.settings.images import ImagePanel
-from pet.ui.settings.options import LinesPanel, OptionsPanel
+from pet.ui.settings.options import LinesPanel, OptionsPanel, PersonalityPanel
 
 
 class SettingsDialog(QDialog):
@@ -48,8 +48,9 @@ class SettingsDialog(QDialog):
         # --- 캐릭터별 칸 ---
         self.images = ImagePanel()
         self.options = OptionsPanel()
+        self.personality = PersonalityPanel()
         self.lines = LinesPanel()
-        self._panels = [self.options, self.lines]   # load/changes로 다루는 칸
+        self._panels = [self.options, self.personality, self.lines]   # load/changes로 다루는 칸
 
         # --- 일반 (캐릭터와 상관없는 설정) ---
         general_box = QGroupBox("일반")
@@ -67,6 +68,7 @@ class SettingsDialog(QDialog):
 
         left = QVBoxLayout()
         left.addWidget(char_box, 1)
+        left.addWidget(self.personality)
         left.addWidget(self.lines, 1)
         right = QVBoxLayout()
         right.addWidget(self.images)

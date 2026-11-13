@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage
-from PyQt5.QtWidgets import QCheckBox, QComboBox, QListWidget, QPushButton, QSpinBox
+from PyQt5.QtWidgets import QCheckBox, QComboBox, QLabel, QListWidget, QPushButton, QSpinBox
 
 from pet.config import DEFAULT_LINES, PetConfig
 from pet.ui import prefs
@@ -57,6 +57,10 @@ def root(tmp_path, qapp):
     (tmp_path / "old" / "character.json").write_text(
         json.dumps({"idle_lines": ["옛날 대사"], "max_size": 99}, ensure_ascii=False), encoding="utf-8")
     return tmp_path
+
+
+def write_json(char_dir, values):
+    (char_dir / "character.json").write_text(json.dumps(values, ensure_ascii=False), encoding="utf-8")
 
 
 def test_nothing_changed_writes_nothing(root):
@@ -147,6 +151,49 @@ def test_situation_stays_when_switching_characters(root):
     before = ui.json("old")
     ui.apply()
     assert ui.json("old") == before                  # 고치지 않았으면 파일도 그대로
+
+
+def test_personality_is_saved_and_used(root):
+    ui = Dialog(root)
+    panel = ui.d.personality
+    assert panel._often["sleep"].value() == 2 and panel.speed.value() == PetConfig().speed      # 보통
+    panel._often["sleep"].setValue(3)
+    panel._often["jump"].setValue(0)
+    panel.speed.setValue(5)
+    ui.apply()
+    assert ui.json("a") == {"often": {"sleep": 2, "jump": 0}, "speed": 5}
+    config = PetConfig(character="a", sprites_root=str(root)).with_character_settings()
+    assert config.speed == 5 and config.transitions_for("idle")["jump"] == 0
+
+
+def test_personality_shown_again_and_untouched_is_not_written(root):
+    write_json(root / "a", {"often": {"sleep": 4, "walk": 3}, "speed": 20})     # 칸에 없는 값을 손으로 적음
+    ui = Dialog(root)
+    panel = ui.d.personality
+    assert panel._often["sleep"].value() == 4 and panel.speed.value() == 8
+    before = ui.json("a")
+    ui.apply()
+    assert ui.json("a") == before                    # 움직이지 않았으면 그대로
+    panel._often["jump"].setValue(3)
+    ui.apply()
+    assert ui.json("a") == {"often": {"sleep": 4, "walk": 3, "jump": 2}, "speed": 20}
+
+
+def test_personality_edits_survive_switching_characters(root):
+    ui = Dialog(root)
+    ui.d.personality._often["walk"].setValue(4)
+    ui.select("old")
+    assert ui.d.personality._often["walk"].value() == 2
+    ui.select("a")
+    assert ui.d.personality._often["walk"].value() == 4
+
+
+def test_slider_shows_its_value_name(root):
+    ui = Dialog(root)
+    slider = ui.d.personality._often["sit"]
+    slider.setValue(0)
+    labels = [w.text() for w in slider.parentWidget().findChildren(QLabel)]
+    assert labels == ["안 함"]
 
 
 def test_options_are_saved(root):
