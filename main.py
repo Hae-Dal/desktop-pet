@@ -59,7 +59,7 @@ def main() -> int:
         return 0
     if autostart.supported():
         autostart.follow_moved_exe()      # 새 버전을 다른 폴더에 풀었어도 다음 부팅 때 이 exe가 켜지게
-    sprites = SpriteSet.load(config)
+    sprites = SpriteSet.load(config, prefs.scale())
     pet = PetWidget(config, sprites, World())
     instance.activated.connect(pet.greet)
     pet.show()

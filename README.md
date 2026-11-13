@@ -23,7 +23,7 @@ python main.py [--character 폴더이름] [--size 128]
 |---|---|
 | 클릭 | 점프 (자는 중이면 깜짝 놀라며 깸) |
 | 드래그 | 옮기기. 놓으면 그 모니터 바닥으로 떨어짐 (화면 밖에 놓으면 화면 안쪽으로) |
-| 우클릭 | 메뉴 (점프 / 숨기기 / 설정 / 업데이트 내역 / 종료) |
+| 우클릭 | 메뉴 (점프 / 숨기기 / 크기 / 조용히 하기 / 설정 / 업데이트 내역 / 종료) |
 | 트레이 아이콘 클릭 | 숨기기 ↔ 보이기 (우클릭하면 메뉴). 숨긴 동안은 움직이지 않음 |
 
 ## 캐릭터 이미지
@@ -118,6 +118,7 @@ desktop_pet/
 | 행동 확률 | `pet/config.py`의 `DEFAULT_TRANSITIONS` (캐릭터별로는 `character.json`의 `transitions`) |
 | 새 행동 추가 | `pet/core/states/`에 파일 추가 → `__init__.py`의 `STATE_CLASSES` 등록 → `pet/config.py`의 `DEFAULT_TRANSITIONS`에 확률 추가 → `sprites/<캐릭터>/<이름>_1.png` (자세한 방법은 `pet/core/states/__init__.py`) |
 | 우클릭 메뉴 항목 | `pet/ui/menu.py`의 `default_items` |
+| 크기 메뉴의 배율, 조용히 하기 시간 | `pet/ui/menu.py`의 `SIZES`, `QUIET_TIMES` |
 | 캐릭터 교체 | 우클릭 → 설정, 또는 `sprites/<이름>/` 폴더를 만들고 `--character <이름>` |
 | 설정 창에 보이는 동작 목록 | `pet/ui/characters.py`의 `ANIMATIONS` |
 | 설정 창에서 넣을 수 있는 이미지 한도 (크기·프레임 수) | `pet/ui/settings/images.py`의 `MAX_PIXELS`, `MAX_FRAMES` |

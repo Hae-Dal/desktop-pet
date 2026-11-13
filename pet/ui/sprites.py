@@ -42,6 +42,13 @@ def _scale(pix: QPixmap, max_size: int) -> QPixmap:
     return pix
 
 
+def _resize(pix: QPixmap, scale: float) -> QPixmap:
+    if scale == 1:
+        return pix
+    w, h = max(1, round(pix.width() * scale)), max(1, round(pix.height() * scale))
+    return pix.scaled(w, h, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+
+
 def _flip(pix: QPixmap) -> QPixmap:
     return pix.transformed(QTransform().scale(-1, 1))
 
@@ -121,15 +128,19 @@ def _make_placeholder() -> Dict[str, List[QPixmap]]:
 
 
 class SpriteSet:
-    """애니메이션 이름 -> 프레임 목록. 좌우 반전본을 미리 만들어 둡니다."""
+    """애니메이션 이름 -> 프레임 목록. 좌우 반전본을 미리 만들어 둡니다.
 
-    def __init__(self, animations: Dict[str, List[QPixmap]]):
+    scale은 화면에 보이는 크기 배율 (우클릭 메뉴의 크기, 캐릭터와 상관없이 모두에 적용).
+    """
+
+    def __init__(self, animations: Dict[str, List[QPixmap]], scale: float = 1.0):
         animations = {k: v for k, v in animations.items() if v}
         if not animations:
             animations = _make_placeholder()
         if "idle" not in animations:
             first = animations.get("walk") or next(iter(animations.values()))
             animations["idle"] = [first[0]]
+        animations = {name: [_resize(p, scale) for p in frames] for name, frames in animations.items()}
 
         self._right = animations
         self._left = {name: [_flip(p) for p in frames] for name, frames in animations.items()}
@@ -141,14 +152,14 @@ class SpriteSet:
         )
 
     @classmethod
-    def load(cls, config: PetConfig) -> "SpriteSet":
+    def load(cls, config: PetConfig, scale: float = 1.0) -> "SpriteSet":
         animations = {
             name: _load_animation(files, config.max_size)
             for name, files in scan_directory(config.character_dir).items()
         }
         if config.faces_left:               # 오른쪽 보는 이미지 기준으로 맞춤
             animations = {name: [_flip(p) for p in frames] for name, frames in animations.items()}
-        return cls(animations)
+        return cls(animations, scale)
 
     def has(self, name: str) -> bool:
         return name in self._right
