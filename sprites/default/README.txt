@@ -5,7 +5,9 @@
   idle.png                      가만히 있을 때 (선택, 없으면 walk 첫 프레임)
   sit_1.png ... / sit.gif       앉기 (선택, 없으면 idle로 대체)
   sleep_1.png ... / sleep.gif   잠자기 (선택, 없으면 idle로 대체)
-  fall.png / drag.png           점프·떨어짐 / 잡혔을 때 (선택, 없으면 idle로 대체)
+  jump.png                      점프해서 올라갈 때 (선택, 없으면 fall, 그것도 없으면 idle로 대체)
+  fall.png                      떨어질 때·점프 후 내려올 때 (선택, 없으면 jump, 그것도 없으면 idle로 대체)
+  drag.png                      잡혔을 때 (선택, 없으면 idle로 대체)
   <새이름>_1.png ...            pet/core/states/에 새 상태를 추가했다면 같은 이름으로
 
 파일 이름 규칙

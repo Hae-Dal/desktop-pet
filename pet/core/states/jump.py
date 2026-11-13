@@ -1,10 +1,22 @@
+from typing import Optional
+
 from pet.core.states.fall import FallState
 
 
 class JumpState(FallState):
-    """스스로 점프. 위로 속도를 준 뒤 착지까지는 FallState와 같음."""
+    """점프. 위로 속도를 준 뒤 착지까지는 FallState와 같음.
+
+    올라가는 동안은 jump 이미지, 꼭대기를 지나 내려올 때는 fall 이미지
+    (둘 중 하나만 있으면 그 이미지로 둘 다, 둘 다 없으면 idle).
+    """
     name = "jump"
-    animation = "fall"          # 클릭 점프와 같은 이미지 (fall.png, 없으면 idle)
+    animation = "jump"
+
+    def update(self) -> Optional[str]:
+        next_name = super().update()
+        if self.ctx.vy >= 0:
+            self.ctx.set_animation("fall")
+        return next_name
 
     def enter(self) -> None:
         ctx = self.ctx

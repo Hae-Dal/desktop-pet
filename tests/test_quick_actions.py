@@ -162,7 +162,7 @@ def test_drop_on_row_label_and_buttons_too(char_root, tmp_path):
     d, panel = opened(char_root)
     label = panel._grid.itemAtPosition(1, 0).widget()               # '걷기' 글자
     drop(panel, label, src)
-    button = panel._grid.itemAtPosition(3, 3).widget()              # '앉기' 지우기 버튼
+    button = panel._grid.itemAtPosition(4, 3).widget()              # '앉기' 지우기 버튼
     drop(panel, button, src)
     assert set(panel.pending[str(char_root / "a")]) == {"walk", "sit"}
     d.close()

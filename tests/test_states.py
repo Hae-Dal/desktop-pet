@@ -75,6 +75,28 @@ def test_jump_from_walk_moves_forward(pet):
     assert ctx.x > start and ctx.vx == 0
 
 
+def test_jump_uses_jump_image_going_up_and_fall_image_coming_down(pet):
+    ctx, machine = pet
+    machine.change("idle")
+    machine.change("jump")
+    assert ctx.animation == "jump"
+    machine.update()
+    assert ctx.animation == "jump" and ctx.vy < 0
+    while ctx.vy < 0:
+        machine.update()
+    assert ctx.animation == "fall"
+    run_until_ground(machine, ctx)
+    assert machine.current_name != "jump"
+
+
+def test_dropped_pet_uses_fall_image(pet):
+    ctx, machine = pet
+    ctx.y -= 100
+    machine.change("fall")
+    machine.update()
+    assert ctx.animation == "fall"
+
+
 def test_jump_from_idle_goes_straight_up(pet):
     ctx, machine = pet
     machine.change("idle")

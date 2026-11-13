@@ -16,7 +16,8 @@ from pet.ui.sprites import pick_files, scan_directory
 ANIMATIONS = [
     ("idle", "가만히 있기"),
     ("walk", "걷기"),
-    ("fall", "점프 · 떨어짐"),
+    ("jump", "점프"),
+    ("fall", "떨어짐"),
     ("sit", "앉기"),
     ("sleep", "잠자기"),
     ("drag", "잡혔을 때"),

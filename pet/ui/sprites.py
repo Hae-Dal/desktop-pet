@@ -10,7 +10,7 @@ sprites/<character>/ 폴더 안의 파일 이름으로 애니메이션을 자동
 이름은 소문자로 통일하고(Walk_1.PNG -> "walk"), 같은 이름이 여러 형식으로 있으면
 번호 붙은 파일 > 번호 없는 파일 중 EXTENSIONS 순서가 앞선 것 하나만 씁니다.
 새 행동용 이미지를 추가하려면 `<이름>_N.png` 또는 `<이름>.gif`로 넣기만 하면 됩니다.
-없는 애니메이션을 요청받으면 "idle"로 대체됩니다.
+없는 애니메이션을 요청받으면 SUBSTITUTES에 적힌 동작, 그것도 없으면 "idle"로 대체됩니다.
 
 주의: QPixmap은 QApplication을 만든 뒤에 생성해야 하므로 load()는 그 이후에 호출하세요.
 """
@@ -25,6 +25,9 @@ from pet.config import PetConfig
 
 EXTENSIONS = ("png", "webp", "gif", "jpg", "jpeg", "bmp")    # 번호 없는 파일끼리는 이 순서로 고름
 ANIMATED = ("gif", "webp")                                   # 한 파일에 여러 프레임이 있을 수 있는 형식
+
+# 이미지가 없을 때 idle보다 먼저 대신 쓸 동작 (점프와 떨어짐은 비슷해서 서로 대신)
+SUBSTITUTES = {"jump": "fall", "fall": "jump"}
 
 # <이름>[_번호].<확장자>  (이름에 '_'를 써도 됨: sleep_left_1.png -> "sleep_left", 대소문자 무시)
 _FILE_RE = re.compile(r"^([a-z]+(?:_[a-z]+)*)(?:_(\d+))?\.(%s)$" % "|".join(EXTENSIONS), re.IGNORECASE)
@@ -166,5 +169,5 @@ class SpriteSet:
 
     def frame(self, name: str, index: int, facing: int) -> QPixmap:
         table = self._right if facing >= 0 else self._left
-        frames = table.get(name) or table["idle"]
+        frames = table.get(name) or table.get(SUBSTITUTES.get(name, "")) or table["idle"]
         return frames[index % len(frames)]

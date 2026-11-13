@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QFileDialog, QFrame, QGridLayout, QGroupBox, QLabel,
 from pet.ui import characters
 from pet.ui.sprites import ANIMATED, EXTENSIONS
 
-PREVIEW = 64           # 미리보기 칸 크기(px)
+PREVIEW = 48           # 미리보기 칸 크기(px). 크면 설정 창이 작은 화면을 넘침
 IMAGE_FILTER = "이미지 (%s)" % " ".join("*." + ext for ext in EXTENSIONS)
 # 고를 수 있는 이미지 한도. 원본 그대로 읽은 뒤 줄이므로 너무 크면 켤 때 멈추거나 메모리가 모자람
 # (4096x4096 한 장이 약 64MB). 폴더에 직접 넣은 파일은 검사하지 않음
@@ -46,7 +46,8 @@ class ImagePanel(QGroupBox):
             grid.addWidget(clear, row, 3)
             self._previews[anim] = preview
         note = QLabel("이미지 파일을 줄 위로 끌어다 놓아도 됩니다.\n"
-                      "이미지가 없는 동작은 '가만히 있기' 이미지로 대신합니다.")
+                      "이미지가 없는 동작은 '가만히 있기' 이미지로 대신합니다.\n"
+                      "(점프와 떨어짐은 하나만 넣으면 둘 다 그 이미지로)")
         note.setEnabled(False)
         grid.addWidget(note, len(characters.ANIMATIONS), 0, 1, 4)
 
