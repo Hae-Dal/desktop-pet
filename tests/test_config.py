@@ -55,6 +55,27 @@ def test_new_lines_format_wins_over_old(tmp_path):
     assert result.lines_for("idle") == ("새것",)
 
 
+def test_often_multiplies_weights_for_that_behavior():
+    config = PetConfig(often={"sleep": 2, "jump": 0})
+    idle = DEFAULT_TRANSITIONS["idle"]
+    assert config.transitions_for("idle") == {**idle, "sleep": idle["sleep"] * 2, "jump": 0}
+    assert config.transitions_for("sit")["sleep"] == DEFAULT_TRANSITIONS["sit"]["sleep"] * 2
+
+
+def test_often_applies_on_top_of_character_transitions():
+    config = PetConfig(transitions={"idle": {"sleep": 3}}, often={"sleep": 2})
+    assert config.transitions_for("idle")["sleep"] == 6
+
+
+def test_often_wrong_values_are_ignored(tmp_path):
+    config = make_character(tmp_path, {"often": {"sleep": "많이", "walk": 2, "jump": True}}).with_character_settings()
+    assert config.often == {"walk": 2.0}
+
+
+def test_often_not_a_dict_is_ignored(tmp_path):
+    assert make_character(tmp_path, {"often": [1]}).with_character_settings().often == {}
+
+
 def test_transitions_override_only_given_weights(tmp_path):
     result = make_character(tmp_path, {"transitions": {"idle": {"sleep": 3}}}).with_character_settings()
     weights = result.transitions_for("idle")

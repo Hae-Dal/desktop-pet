@@ -93,6 +93,7 @@ class PetConfig:
 
     # --- 성격 ---
     transitions: Dict[str, Dict[str, float]] = field(default_factory=dict)  # 바꿀 가중치만 (나머지는 DEFAULT_TRANSITIONS)
+    often: Dict[str, float] = field(default_factory=dict)   # 행동 -> 얼마나 자주 (가중치에 곱함. 2면 2배, 0이면 안 함)
 
     @property
     def character_dir(self) -> str:
@@ -103,15 +104,17 @@ class PetConfig:
         return self.lines.get(situation) or DEFAULT_LINES.get(situation, ())
 
     def transitions_for(self, state: str) -> Dict[str, float]:
-        """state가 끝났을 때 다음 행동 가중치 (기본값에 캐릭터 설정을 덮어씀)."""
-        return {**DEFAULT_TRANSITIONS.get(state, {}), **self.transitions.get(state, {})}
+        """state가 끝났을 때 다음 행동 가중치 (기본값에 캐릭터 설정을 덮어쓰고 often을 곱함)."""
+        weights = {**DEFAULT_TRANSITIONS.get(state, {}), **self.transitions.get(state, {})}
+        return {name: weight * self.often.get(name, 1) for name, weight in weights.items()}
 
     def with_character_settings(self) -> "PetConfig":
         """캐릭터 폴더의 character.json 값으로 덮어쓴 설정을 돌려줌 (파일이 없거나 깨졌으면 그대로).
 
         예: {"faces_left": true, "max_size": 160, "frame_every": 4,
              "lines": {"idle": ["물범아 놀자!", "졸려..."]},
-             "transitions": {"idle": {"sleep": 3}}}
+             "transitions": {"idle": {"sleep": 3}},
+             "often": {"sleep": 2, "jump": 0}}
         """
         data = read_character_file(self.character_dir)
         if "lines" in data:
@@ -206,6 +209,10 @@ def _fix(key: str, value):
             return _BAD
         return {state: {n: float(w) for n, w in weights.items() if _is_number(w)}
                 for state, weights in value.items() if isinstance(weights, dict)}
+    if key == "often":                      # {"행동": 배수}
+        if not isinstance(value, dict):
+            return _BAD
+        return {name: float(n) for name, n in value.items() if _is_number(n)}
     if isinstance(default, bool):
         return value if isinstance(value, bool) else _BAD
     if _is_number(default):
