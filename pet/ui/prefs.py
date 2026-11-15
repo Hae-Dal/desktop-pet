@@ -13,6 +13,7 @@ _CHARACTER = "character"                # 마지막으로 고른 캐릭터
 _EASTER_EGG = "unlocked_easter_egg"     # 숨은 캐릭터를 찾았는지
 _CHECK_UPDATES = "check_updates"        # 새 버전 확인 켜기/끄기
 _LAST_SEEN_VERSION = "last_seen_version"
+_SCALE = "scale"                        # 펫 크기 배율 (우클릭 메뉴의 크기)
 
 # 정해 두면 원래 저장 위치 대신 이 ini 파일을 씀 (테스트가 사용자 값을 건드리지 않게)
 override_file: Optional[str] = None
@@ -54,3 +55,15 @@ def last_seen_version() -> Optional[str]:
 
 def set_last_seen_version(version: str) -> None:
     store().setValue(_LAST_SEEN_VERSION, version)
+
+
+def scale() -> float:
+    try:
+        value = store().value(_SCALE, 1.0, type=float)
+    except (TypeError, ValueError):     # 손으로 고친 값 등
+        return 1.0
+    return value if value > 0 else 1.0
+
+
+def set_scale(value: float) -> None:
+    store().setValue(_SCALE, value)

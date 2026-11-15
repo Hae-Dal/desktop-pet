@@ -10,7 +10,7 @@ sprites/<character>/ 폴더 안의 파일 이름으로 애니메이션을 자동
 이름은 소문자로 통일하고(Walk_1.PNG -> "walk"), 같은 이름이 여러 형식으로 있으면
 번호 붙은 파일 > 번호 없는 파일 중 EXTENSIONS 순서가 앞선 것 하나만 씁니다.
 새 행동용 이미지를 추가하려면 `<이름>_N.png` 또는 `<이름>.gif`로 넣기만 하면 됩니다.
-없는 애니메이션을 요청받으면 "idle"로 대체됩니다.
+없는 애니메이션을 요청받으면 SUBSTITUTES에 적힌 동작, 그것도 없으면 "idle"로 대체됩니다.
 
 주의: QPixmap은 QApplication을 만든 뒤에 생성해야 하므로 load()는 그 이후에 호출하세요.
 """
@@ -26,6 +26,9 @@ from pet.config import PetConfig
 EXTENSIONS = ("png", "webp", "gif", "jpg", "jpeg", "bmp")    # 번호 없는 파일끼리는 이 순서로 고름
 ANIMATED = ("gif", "webp")                                   # 한 파일에 여러 프레임이 있을 수 있는 형식
 
+# 이미지가 없을 때 idle보다 먼저 대신 쓸 동작 (점프와 떨어짐은 비슷해서 서로 대신)
+SUBSTITUTES = {"jump": "fall", "fall": "jump"}
+
 # <이름>[_번호].<확장자>  (이름에 '_'를 써도 됨: sleep_left_1.png -> "sleep_left", 대소문자 무시)
 _FILE_RE = re.compile(r"^([a-z]+(?:_[a-z]+)*)(?:_(\d+))?\.(%s)$" % "|".join(EXTENSIONS), re.IGNORECASE)
 
@@ -40,6 +43,13 @@ def _scale(pix: QPixmap, max_size: int) -> QPixmap:
     if max(pix.width(), pix.height()) > max_size:
         return pix.scaled(max_size, max_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
     return pix
+
+
+def _resize(pix: QPixmap, scale: float) -> QPixmap:
+    if scale == 1:
+        return pix
+    w, h = max(1, round(pix.width() * scale)), max(1, round(pix.height() * scale))
+    return pix.scaled(w, h, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
 
 def _flip(pix: QPixmap) -> QPixmap:
@@ -121,15 +131,19 @@ def _make_placeholder() -> Dict[str, List[QPixmap]]:
 
 
 class SpriteSet:
-    """애니메이션 이름 -> 프레임 목록. 좌우 반전본을 미리 만들어 둡니다."""
+    """애니메이션 이름 -> 프레임 목록. 좌우 반전본을 미리 만들어 둡니다.
 
-    def __init__(self, animations: Dict[str, List[QPixmap]]):
+    scale은 화면에 보이는 크기 배율 (우클릭 메뉴의 크기, 캐릭터와 상관없이 모두에 적용).
+    """
+
+    def __init__(self, animations: Dict[str, List[QPixmap]], scale: float = 1.0):
         animations = {k: v for k, v in animations.items() if v}
         if not animations:
             animations = _make_placeholder()
         if "idle" not in animations:
             first = animations.get("walk") or next(iter(animations.values()))
             animations["idle"] = [first[0]]
+        animations = {name: [_resize(p, scale) for p in frames] for name, frames in animations.items()}
 
         self._right = animations
         self._left = {name: [_flip(p) for p in frames] for name, frames in animations.items()}
@@ -141,19 +155,19 @@ class SpriteSet:
         )
 
     @classmethod
-    def load(cls, config: PetConfig) -> "SpriteSet":
+    def load(cls, config: PetConfig, scale: float = 1.0) -> "SpriteSet":
         animations = {
             name: _load_animation(files, config.max_size)
             for name, files in scan_directory(config.character_dir).items()
         }
         if config.faces_left:               # 오른쪽 보는 이미지 기준으로 맞춤
             animations = {name: [_flip(p) for p in frames] for name, frames in animations.items()}
-        return cls(animations)
+        return cls(animations, scale)
 
     def has(self, name: str) -> bool:
         return name in self._right
 
     def frame(self, name: str, index: int, facing: int) -> QPixmap:
         table = self._right if facing >= 0 else self._left
-        frames = table.get(name) or table["idle"]
+        frames = table.get(name) or table.get(SUBSTITUTES.get(name, "")) or table["idle"]
         return frames[index % len(frames)]

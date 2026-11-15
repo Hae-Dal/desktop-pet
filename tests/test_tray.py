@@ -64,7 +64,7 @@ def test_no_hide_menu_without_tray(make_pet):
 
 def test_tray_menu_has_common_items(make_pet):
     pet = make_pet()
-    assert labels(menu.tray_items(pet)) == ["숨기기", "설정...", "업데이트 내역", "종료"]
+    assert labels(menu.tray_items(pet)) == ["숨기기", "크기", "조용히 하기", "설정...", "업데이트 내역", "종료"]
     pet.tray._fill_menu()
     assert [a.text() for a in pet.tray._menu.actions()] == labels(menu.tray_items(pet))
 

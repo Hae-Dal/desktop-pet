@@ -1,4 +1,4 @@
-"""설정 창의 '이미지' 칸: 동작별 미리보기, 찾아보기, 지우기.
+"""설정 창의 '이미지' 칸: 동작별 미리보기, 찾아보기, 끌어다 놓기, 지우기.
 
 고른 파일은 [적용]할 때까지 pending에만 기억해 둡니다.
 """
@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QFileDialog, QFrame, QGridLayout, QGroupBox, QLabel,
 from pet.ui import characters
 from pet.ui.sprites import ANIMATED, EXTENSIONS
 
-PREVIEW = 64           # 미리보기 칸 크기(px)
+PREVIEW = 48           # 미리보기 칸 크기(px). 크면 설정 창이 작은 화면을 넘침
 IMAGE_FILTER = "이미지 (%s)" % " ".join("*." + ext for ext in EXTENSIONS)
 # 고를 수 있는 이미지 한도. 원본 그대로 읽은 뒤 줄이므로 너무 크면 켤 때 멈추거나 메모리가 모자람
 # (4096x4096 한 장이 약 64MB). 폴더에 직접 넣은 파일은 검사하지 않음
@@ -26,8 +26,10 @@ class ImagePanel(QGroupBox):
         self._char_dir: Optional[str] = None
         self._movies: List[QMovie] = []
         self._previews: Dict[str, QLabel] = {}
+        self.setAcceptDrops(True)       # 파일을 동작 줄에 끌어다 놓으면 그 동작 이미지로
 
         grid = QGridLayout(self)
+        self._grid = grid
         for row, (anim, label) in enumerate(characters.ANIMATIONS):
             preview = QLabel()
             preview.setFixedSize(PREVIEW, PREVIEW)
@@ -43,7 +45,9 @@ class ImagePanel(QGroupBox):
             grid.addWidget(browse, row, 2)
             grid.addWidget(clear, row, 3)
             self._previews[anim] = preview
-        note = QLabel("이미지가 없는 동작은 '가만히 있기' 이미지로 대신합니다.")
+        note = QLabel("이미지 파일을 줄 위로 끌어다 놓아도 됩니다.\n"
+                      "이미지가 없는 동작은 '가만히 있기' 이미지로 대신합니다.\n"
+                      "(점프와 떨어짐은 하나만 넣으면 둘 다 그 이미지로)")
         note.setEnabled(False)
         grid.addWidget(note, len(characters.ANIMATIONS), 0, 1, 4)
 
@@ -88,6 +92,37 @@ class ImagePanel(QGroupBox):
             return
         self._choose(anim, path)
 
+    # ---------- 끌어다 놓기 ----------
+    def dragEnterEvent(self, e) -> None:
+        if self._char_dir and _dropped_image(e.mimeData()):
+            e.acceptProposedAction()
+
+    def dragMoveEvent(self, e) -> None:
+        if self._anim_at(e.pos()):
+            e.acceptProposedAction()
+        else:
+            e.ignore()
+
+    def dropEvent(self, e) -> None:
+        anim, path = self._anim_at(e.pos()), _dropped_image(e.mimeData())
+        if not anim or not path:
+            return
+        e.acceptProposedAction()
+        problem = check_image(path)
+        if problem:
+            QMessageBox.warning(self, "이미지 선택", problem)
+            return
+        self._choose(anim, path)
+
+    def _anim_at(self, pos) -> Optional[str]:
+        """그 위치가 있는 동작 줄 (이름·미리보기·버튼 어디든)."""
+        widget = self.childAt(pos)
+        index = self._grid.indexOf(widget) if widget else -1
+        if index < 0:
+            return None
+        row = self._grid.getItemPosition(index)[0]
+        return characters.ANIMATIONS[row][0] if row < len(characters.ANIMATIONS) else None
+
     def _choose(self, anim: str, path: Optional[str]) -> None:
         if not self._char_dir:
             return
@@ -119,6 +154,15 @@ class ImagePanel(QGroupBox):
         else:
             pix = QPixmap(path)
             label.setPixmap(pix.scaled(_fit(pix.size()), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+
+def _dropped_image(mime) -> Optional[str]:
+    """끌어 온 것이 이미지 파일 하나면 그 경로."""
+    urls = mime.urls() if mime.hasUrls() else []
+    if len(urls) != 1 or not urls[0].isLocalFile():
+        return None
+    path = urls[0].toLocalFile()
+    return path if path.lower().rsplit(".", 1)[-1] in EXTENSIONS else None
 
 
 def check_image(path: str) -> Optional[str]:

@@ -6,7 +6,7 @@ from pet.core.states.base import State
 class FallState(State):
     """점프하거나 드래그 후 놓았을 때: 중력으로 바닥까지."""
     name = "fall"
-    animation = "fall"          # 이미지가 없으면 idle로 대체됨
+    animation = "fall"          # 이미지가 없으면 jump, 그것도 없으면 idle로 대체됨
 
     def update(self) -> Optional[str]:
         ctx = self.ctx

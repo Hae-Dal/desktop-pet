@@ -159,3 +159,29 @@ def test_saving_over_broken_file_keeps_backup(root):
     assert backup and open(backup, encoding="utf-8").read() == '{"max_size": 100,'
     assert characters.read_settings(str(char)) == {"faces_left": True}
     assert characters.write_settings(str(char), {"max_size": 50}) is None      # 이제 멀쩡하니 백업 안 함
+
+
+def sprite_set(**colors):
+    from PyQt5.QtGui import QColor, QPixmap
+    from pet.ui.sprites import SpriteSet
+    frames = {}
+    for name, color in colors.items():
+        pix = QPixmap(4, 4)
+        pix.fill(QColor(color))
+        frames[name] = [pix]
+    return SpriteSet(frames)
+
+
+def color_of(sprites, anim):
+    return sprites.frame(anim, 0, 1).toImage().pixelColor(0, 0).name()
+
+
+def test_jump_and_fall_stand_in_for_each_other(qapp):
+    only_fall = sprite_set(idle="#000000", fall="#ff0000")
+    assert color_of(only_fall, "jump") == color_of(only_fall, "fall") == "#ff0000"
+    only_jump = sprite_set(idle="#000000", jump="#00ff00")
+    assert color_of(only_jump, "fall") == "#00ff00"
+    both = sprite_set(idle="#000000", jump="#00ff00", fall="#ff0000")
+    assert (color_of(both, "jump"), color_of(both, "fall")) == ("#00ff00", "#ff0000")
+    neither = sprite_set(idle="#000000")
+    assert color_of(neither, "jump") == color_of(neither, "sit") == "#000000"

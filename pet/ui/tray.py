@@ -30,8 +30,7 @@ class Tray(QSystemTrayIcon):
 
     def _fill_menu(self) -> None:
         self._menu.clear()
-        for item in menu.tray_items(self.pet):
-            self._menu.addAction(item.label).triggered.connect(item.callback)
+        menu.fill(self._menu, menu.tray_items(self.pet))
 
     def _on_activated(self, reason) -> None:
         if reason == QSystemTrayIcon.Trigger:               # 왼쪽 클릭

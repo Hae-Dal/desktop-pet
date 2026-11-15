@@ -12,7 +12,7 @@ from pet import __version__
 from pet.config import PetConfig, character_file_error, greeting_for
 from pet.core.context import PetContext
 from pet.core.states import StateMachine, TimedState, build_states
-from pet.ui import changelog, easter_egg, menu, topmost, tray, updater
+from pet.ui import changelog, easter_egg, menu, prefs, topmost, tray, updater
 from pet.ui.bubble import BubbleWidget
 from pet.ui.settings import SettingsDialog
 from pet.ui.sprites import SpriteSet
@@ -28,6 +28,7 @@ class PetWidget(QWidget):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
 
+        self.scale = prefs.scale()              # 우클릭 메뉴의 크기 (main이 이 값으로 이미지를 읽어 옴)
         self.ctx = PetContext(config, world, *sprites.size)
         self.bubble = BubbleWidget()
         self._load(config, sprites)
@@ -125,12 +126,24 @@ class PetWidget(QWidget):
     def change_character(self, name: str) -> None:
         """설정 창에서 적용: 이미지와 캐릭터별 설정을 다시 읽어 바로 바꿈."""
         config = PetConfig(character=name, sprites_root=self.config.sprites_root).with_character_settings()
-        self._load(config, SpriteSet.load(config))
+        self._reload(config)
+        self._warn_broken_settings()
+
+    def set_scale(self, scale: float) -> None:
+        """우클릭 메뉴의 크기: 모든 캐릭터에 적용되고 다음에 켤 때도 유지."""
+        self.scale = scale
+        prefs.set_scale(scale)
+        self._reload(self.config)
+
+    def _reload(self, config: PetConfig) -> None:
+        bottom = self.ctx.y + self.ctx.height
+        self._load(config, SpriteSet.load(config, self.scale))
+        self.ctx.y = bottom - self.ctx.height        # 발 위치를 유지한 채로 크기만 바뀌게
         self.machine.change("fall")                  # 크기가 바뀌었을 수 있으니 바닥으로
+        self.move(self.ctx.x, self.ctx.y)
         self.update()
         if self.tray:
             self.tray.update_icon()
-        self._warn_broken_settings()
 
     def _warn_broken_settings(self) -> None:
         """character.json이 깨져서 기본 설정으로 켜졌으면 알림 (고칠 때까지 켤 때마다)."""

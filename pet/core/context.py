@@ -4,6 +4,7 @@
 상태 클래스가 Qt 위젯을 몰라도 동작하게 합니다.
 """
 import random
+import time
 from typing import TYPE_CHECKING
 
 from pet.config import PetConfig
@@ -33,6 +34,7 @@ class PetContext:
         self.bubble_is_notice = False   # 프로그램 안내(notify) 중이면 대사로 덮어쓰지 않음
 
         self.untouched_ticks = 0   # 마지막으로 만진 뒤 지난 tick 수
+        self.quiet_until = 0.0     # 이 시각(time.monotonic)까지 말하지 않음 (안내는 표시)
 
     # ---------- 위치 ----------
     @property
@@ -53,9 +55,19 @@ class PetContext:
             self.frame_idx = 0
 
     # ---------- 말풍선 ----------
+    @property
+    def quiet_seconds_left(self) -> float:
+        return max(0.0, self.quiet_until - time.monotonic())
+
+    def be_quiet(self, seconds: float) -> None:
+        """seconds 동안 말하지 않음 (0이면 다시 말함). 지금 하던 말도 지움."""
+        self.quiet_until = time.monotonic() + seconds if seconds > 0 else 0.0
+        if seconds > 0:
+            self.clear_bubble()
+
     def say(self, text: str, ticks: int = 90) -> None:
-        """펫의 말. 프로그램 안내가 떠 있는 동안에는 말하지 않음."""
-        if not self.bubble_is_notice:
+        """펫의 말. 프로그램 안내가 떠 있거나 조용히 하는 중이면 말하지 않음."""
+        if not self.bubble_is_notice and not self.quiet_seconds_left:
             self.bubble_text = text
             self.bubble_ticks = ticks
 
