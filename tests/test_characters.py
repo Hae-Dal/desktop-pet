@@ -10,15 +10,10 @@ from pet.config import PetConfig
 from pet.ui import characters, easter_egg, prefs
 from pet.ui.sprites import SpriteSet, scan_directory
 
+from helpers import save_image
+
 
 DATA = Path(__file__).parent / "data"      # anim.gif, anim.webp: 12x8, 빨강·초록·파랑 3프레임
-
-
-def png(path, w=10, h=10):
-    pix = QPixmap(w, h)
-    pix.fill(QColor("red"))
-    assert pix.save(str(path))
-    return path
 
 
 @pytest.fixture
@@ -47,10 +42,10 @@ def test_valid_names(name, ok):
 
 
 def test_set_animation_replaces_old_files(root, tmp_path_factory):
-    src = png(tmp_path_factory.mktemp("src") / "anything.png")
+    src = save_image(tmp_path_factory.mktemp("src") / "anything.png")
     char = root / "cat"
-    png(char / "walk_1.png")
-    png(char / "walk_2.png")
+    save_image(char / "walk_1.png")
+    save_image(char / "walk_2.png")
     characters.set_animation(str(char), "walk", str(src))
     assert sorted(p.name for p in char.iterdir()) == ["walk.png"]
     characters.clear_animation(str(char), "walk")
@@ -60,7 +55,7 @@ def test_set_animation_replaces_old_files(root, tmp_path_factory):
 def test_animation_file_priority(root):
     char = root / "cat"
     for name in ("idle.gif", "idle.png", "idle_2.png", "idle_1.png"):
-        png(char / name) if name.endswith("png") else (char / name).write_bytes(b"")
+        save_image(char / name) if name.endswith("png") else (char / name).write_bytes(b"")
     assert characters.animation_file(str(char), "idle").endswith("idle_1.png")
 
 
@@ -76,8 +71,8 @@ def test_animation_file_prefers_png_then_by_format(root):
 @pytest.mark.parametrize("ext", ["jpg", "jpeg", "bmp", "webp", "JPG"])
 def test_other_formats_load(tmp_path, qapp, ext):
     (tmp_path / "cat").mkdir()
-    png(tmp_path / "cat" / f"walk_1.{ext}", 30, 20)
-    png(tmp_path / "cat" / f"idle.{ext}", 30, 20)
+    save_image(tmp_path / "cat" / f"walk_1.{ext}", 30, 20)
+    save_image(tmp_path / "cat" / f"idle.{ext}", 30, 20)
     sprites = SpriteSet.load(PetConfig(character="cat", sprites_root=str(tmp_path)))
     assert sprites.has("walk") and sprites.has("idle") and sprites.size == (30, 20)
 
@@ -138,7 +133,7 @@ def test_sprites_fallbacks(tmp_path, qapp):
     empty = SpriteSet.load(PetConfig(character="none", sprites_root=str(tmp_path)))
     assert empty.has("walk") and empty.has("idle")          # 이미지가 없으면 임시 도형
     (tmp_path / "cat").mkdir()
-    png(tmp_path / "cat" / "walk_1.png", 30, 20)
+    save_image(tmp_path / "cat" / "walk_1.png", 30, 20)
     sprites = SpriteSet.load(PetConfig(character="cat", sprites_root=str(tmp_path)))
     assert sprites.size == (30, 20)
     assert sprites.frame("sleep", 0, 1).size() == sprites.frame("idle", 0, 1).size()   # 없는 동작은 idle로
@@ -146,7 +141,7 @@ def test_sprites_fallbacks(tmp_path, qapp):
 
 def test_large_images_are_scaled_down(tmp_path, qapp):
     (tmp_path / "cat").mkdir()
-    png(tmp_path / "cat" / "idle.png", 400, 200)
+    save_image(tmp_path / "cat" / "idle.png", 400, 200)
     (tmp_path / "cat" / "character.json").write_text(json.dumps({"max_size": 100}), encoding="utf-8")
     config = PetConfig(character="cat", sprites_root=str(tmp_path)).with_character_settings()
     assert SpriteSet.load(config).size == (100, 50)
@@ -162,8 +157,6 @@ def test_saving_over_broken_file_keeps_backup(root):
 
 
 def sprite_set(**colors):
-    from PyQt5.QtGui import QColor, QPixmap
-    from pet.ui.sprites import SpriteSet
     frames = {}
     for name, color in colors.items():
         pix = QPixmap(4, 4)

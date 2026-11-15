@@ -18,7 +18,7 @@ Python은 `.venv`의 것을 씁니다 (PyQt5 5.15, pytest, pyflakes, pyinstaller
 
 - README가 Python 3.7 이상을 지원한다고 적고 있으므로 walrus(`:=`) 같은 3.8+ 문법은 쓰지 않습니다.
 - `main.py`를 실행하면 실제 사용자 저장값(레지스트리)과 단일 실행 잠금을 씁니다. 화면 확인만 필요하면 `prefs.override_file`, `autostart.override_file`을 임시 파일로 정한 스크립트에서 위젯을 만들어 `widget.grab().save(...)`로 그려 봅니다.
-- 테스트는 `tests/conftest.py`가 `prefs`·`autostart` 저장 위치를 임시 파일로 바꿔 줍니다. 펫 위젯을 만드는 테스트는 `prefs.set_last_seen_version(__version__)`을 해 두지 않으면 "업데이트됐어" 안내가 떠서 대사가 막힙니다.
+- 테스트는 `tests/conftest.py`가 `prefs`·`autostart` 저장 위치를 임시 파일로 바꿔 줍니다. 펫 창이 필요하면 conftest의 `make_pet` fixture를 쓰고 (새 버전 확인과 "업데이트됐어" 안내를 꺼 둠, 끝나면 닫음), 테스트용 이미지 파일은 `tests/helpers.py`의 `save_image`로 만듭니다.
 
 ## 구조
 
