@@ -196,6 +196,38 @@ def test_slider_shows_its_value_name(root):
     assert labels == ["안 함"]
 
 
+HAND_WRITTEN = {                             # 칸 범위를 넘거나 칸 단위로 딱 떨어지지 않는 값
+    "max_size": 2000, "frame_every": 200, "walk_frame_every": 2.5, "idle_chat_chance": 0.333,
+    "speed": 20, "often": {"sleep": 3, "walk": 1.5},
+}
+
+
+def test_untouched_hand_written_values_are_kept(root):
+    write_json(root / "a", HAND_WRITTEN)
+    ui = Dialog(root)
+    ui.add_line("새 대사")                       # 다른 것을 고쳐서 파일을 쓰게 함
+    ui.apply()
+    assert ui.json("a") == {**HAND_WRITTEN, "lines": {"idle": list(DEFAULT_LINES["idle"]) + ["새 대사"]}}
+
+
+def test_touched_hand_written_value_is_replaced_alone(root):
+    write_json(root / "a", HAND_WRITTEN)
+    ui = Dialog(root)
+    assert ui.spin(" px")[0].value() == 1024                     # 칸에는 범위 안으로 보임
+    ui.spin(" px")[0].setValue(300)
+    ui.d.personality._often["walk"].setValue(4)
+    ui.apply()
+    assert ui.json("a") == {**HAND_WRITTEN, "max_size": 300, "often": {"sleep": 3, "walk": 4}}
+
+
+def test_infinite_value_does_not_break_the_dialog(root):
+    (root / "a" / "character.json").write_text('{"max_size": Infinity, "speed": -Infinity}', encoding="utf-8")
+    ui = Dialog(root)
+    assert ui.spin(" px")[0].value() == 1024 and ui.d.personality.speed.value() == 1
+    ui.apply()
+    assert ui.json("a") == {"max_size": float("inf"), "speed": float("-inf")}
+
+
 def test_options_are_saved(root):
     ui = Dialog(root)
     [c for c in ui.d.findChildren(QCheckBox) if "왼쪽" in c.text()][0].setChecked(True)

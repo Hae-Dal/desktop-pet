@@ -3,8 +3,11 @@
 모든 칸을 같은 방식으로 다룹니다.
     load(values)    기본값 + character.json + 아직 적용 안 한 변경을 합친 값을 칸에 보여 줌
     changes(saved)  지금 칸 내용 중 character.json(saved)과 달라진 값만 돌려줌
+값 하나짜리 칸은 _Field로 연결하고 load_fields / changed_fields로 다룹니다 (사용자가 건드리지 않은 값은 쓰지 않음).
 """
-from typing import Callable, Dict, List, Tuple
+import math
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
@@ -56,12 +59,65 @@ def _often_level(multiplier: float) -> int:
     return min(range(len(OFTEN_LEVELS)), key=lambda i: abs(OFTEN_LEVELS[i][0] - multiplier))
 
 
-def _speed_level(speed: float) -> int:
-    return max(SPEED_RANGE[0], min(int(speed), SPEED_RANGE[1]))
+def _same(value):
+    return value
 
 
-def _changed(values: Dict, saved: Dict) -> Dict:
-    return {k: v for k, v in values.items() if saved.get(k, getattr(_DEFAULTS, k)) != v}
+@dataclass
+class _Field:
+    """설정 값 하나와 칸 하나의 연결.
+
+    show:  파일 값 -> 칸에 보일 값 (단위 바꾸기, 칸 범위로 자르기)
+    store: 칸 값 -> 파일에 쓸 값
+    칸 값이 show(파일 값)과 같으면 사용자가 건드리지 않은 것이므로 파일에 쓰지 않음.
+    그래서 칸 범위를 넘거나 칸 단위로 딱 떨어지지 않는 값을 손으로 적어 두어도 그대로 남음.
+    """
+    key: str                            # 설정 이름
+    get: Callable[[], Any]
+    set: Callable[[Any], None]
+    show: Callable[[Any], Any]
+    store: Callable[[Any], Any] = _same
+    sub: Optional[str] = None           # dict 설정(often)의 한 칸이면 그 안의 이름
+    sub_default: Any = None             # 그 이름이 dict에 없을 때의 값
+
+    def file_value(self, values: Dict):
+        if self.sub is None:
+            return values.get(self.key, getattr(_DEFAULTS, self.key))
+        return values.get(self.key, {}).get(self.sub, self.sub_default)
+
+
+def _checkbox_field(key: str, box: QCheckBox) -> _Field:
+    return _Field(key, box.isChecked, box.setChecked, bool)
+
+
+def _number_field(key: str, widget, to_shown: Callable[[float], float] = _same,
+                  store: Callable[[int], Any] = _same, **sub) -> _Field:
+    """QSpinBox·QSlider 칸: 파일 값을 칸 단위로 바꾼 뒤 칸 범위 안으로."""
+    def show(value) -> int:
+        shown = to_shown(value)
+        if not math.isfinite(shown):        # JSON의 Infinity·NaN
+            return widget.maximum() if shown > 0 else widget.minimum()
+        return max(widget.minimum(), min(round(shown), widget.maximum()))
+    return _Field(key, widget.value, widget.setValue, show, store, **sub)
+
+
+def load_fields(fields: List[_Field], values: Dict) -> None:
+    for f in fields:
+        f.set(f.show(f.file_value(values)))
+
+
+def changed_fields(fields: List[_Field], saved: Dict) -> Dict:
+    """칸 값이 파일 값(saved)을 보여 준 값과 다른 설정만 (dict 설정은 바꾸지 않은 칸도 유지)."""
+    changed: Dict = {}
+    for f in fields:
+        value = f.get()
+        if value == f.show(f.file_value(saved)):
+            continue
+        if f.sub is None:
+            changed[f.key] = f.store(value)
+        else:
+            changed.setdefault(f.key, dict(saved.get(f.key, {})))[f.sub] = f.store(value)
+    return changed
 
 
 def _shown_lines(lines: Dict, situation: str) -> List[str]:
@@ -79,7 +135,8 @@ class OptionsPanel(QGroupBox):
         self.max_size.setRange(16, 1024)
         self.max_size.setSuffix(" px")
         form.addRow("최대 크기:", self.max_size)
-        self._frames: Dict[str, QSpinBox] = {}
+        self._fields = [_checkbox_field("faces_left", self.faces_left),
+                        _number_field("max_size", self.max_size)]
         tick = _DEFAULTS.tick_ms
         for name, label in FRAME_OPTIONS:
             spin = QSpinBox()
@@ -87,50 +144,37 @@ class OptionsPanel(QGroupBox):
             spin.setSingleStep(tick)
             spin.setSuffix(" ms")
             form.addRow(label + ":", spin)
-            self._frames[name] = spin
+            self._fields.append(_number_field(name, spin, lambda v: v * tick,
+                                              lambda ms: max(1, round(ms / tick))))
 
     def load(self, values: Dict) -> None:
-        self.faces_left.setChecked(bool(values["faces_left"]))
-        self.max_size.setValue(int(values["max_size"]))
-        for name, spin in self._frames.items():
-            spin.setValue(int(values[name]) * _DEFAULTS.tick_ms)
+        load_fields(self._fields, values)
 
     def changes(self, saved: Dict) -> Dict:
-        values = {"faces_left": self.faces_left.isChecked(), "max_size": self.max_size.value()}
-        for name, spin in self._frames.items():
-            values[name] = max(1, round(spin.value() / _DEFAULTS.tick_ms))
-        return _changed(values, saved)
+        return changed_fields(self._fields, saved)
 
 
 class PersonalityPanel(QGroupBox):
-    """파일의 값이 슬라이더 칸과 딱 맞지 않아도, 움직이지 않은 슬라이더는 그 값을 바꾸지 않음."""
-
     def __init__(self):
         super().__init__("성격")
         form = QFormLayout(self)
         self._often: Dict[str, QSlider] = {}
+        self._fields: List[_Field] = []
         for name, label in OFTEN_BEHAVIORS:
             row, slider = _slider_row(0, len(OFTEN_LEVELS) - 1, lambda i: OFTEN_LEVELS[i][1])
             form.addRow(label + ":", row)
             self._often[name] = slider
+            self._fields.append(_number_field("often", slider, _often_level, lambda i: OFTEN_LEVELS[i][0],
+                                              sub=name, sub_default=1))
         row, self.speed = _slider_row(*SPEED_RANGE, str)
         form.addRow("걷는 속도:", row)
+        self._fields.append(_number_field("speed", self.speed))
 
     def load(self, values: Dict) -> None:
-        for name, slider in self._often.items():
-            slider.setValue(_often_level(values["often"].get(name, 1)))
-        self.speed.setValue(_speed_level(values["speed"]))
+        load_fields(self._fields, values)
 
     def changes(self, saved: Dict) -> Dict:
-        changed = {}
-        saved_often = saved.get("often", {})
-        edited = {name: OFTEN_LEVELS[slider.value()][0] for name, slider in self._often.items()
-                  if slider.value() != _often_level(saved_often.get(name, 1))}
-        if edited:
-            changed["often"] = {**saved_often, **edited}
-        if self.speed.value() != _speed_level(saved.get("speed", _DEFAULTS.speed)):
-            changed["speed"] = self.speed.value()
-        return changed
+        return changed_fields(self._fields, saved)
 
 
 def _slider_row(lo: int, hi: int, describe: Callable[[int], str]) -> Tuple[QWidget, QSlider]:
@@ -169,6 +213,7 @@ class LinesPanel(QGroupBox):
         self.chance = QSpinBox()
         self.chance.setRange(0, 100)
         self.chance.setSuffix(" %")
+        self._fields = [_number_field("idle_chat_chance", self.chance, lambda v: v * 100, lambda p: p / 100)]
         chance_row = QFormLayout()
         chance_row.addRow("말할 확률:", self.chance)
         note = QLabel("두 번 클릭하면 고칠 수 있어요.\n모두 지우면 기본 대사로 돌아갑니다.\n"
@@ -182,12 +227,12 @@ class LinesPanel(QGroupBox):
         layout.addWidget(note)
 
     def load(self, values: Dict) -> None:
-        self.chance.setValue(round(float(values["idle_chat_chance"]) * 100))
+        load_fields(self._fields, values)
         self._texts = {name: _shown_lines(values["lines"], name) for name, _ in LINE_SITUATIONS}
         self._fill_list()
 
     def changes(self, saved: Dict) -> Dict:
-        changed = _changed({"idle_chat_chance": self.chance.value() / 100}, saved)
+        changed = changed_fields(self._fields, saved)
         self._texts[self._shown_situation] = self.texts()
         saved_lines = saved.get("lines", {})
         edited = {name: texts for name, texts in self._texts.items()
