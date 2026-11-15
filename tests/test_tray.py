@@ -1,36 +1,10 @@
 """트레이 아이콘, 숨기기, 컴퓨터를 켜면 같이 시작."""
 import sys
 
-import pytest
 from PyQt5.QtWidgets import QCheckBox
 
-from pet.config import PetConfig
-from pet.ui import autostart, menu, prefs, tray
-from pet.ui.pet_widget import PetWidget
+from pet.ui import autostart, menu, tray
 from pet.ui.settings import SettingsDialog
-from pet.ui.sprites import SpriteSet
-from pet.ui.world import World
-
-
-@pytest.fixture
-def make_pet(qapp, monkeypatch):
-    prefs.set_check_updates(False)
-    pets = []
-
-    def make(has_tray=True):
-        monkeypatch.setattr(tray, "available", lambda: has_tray)
-        config = PetConfig()
-        pet = PetWidget(config, SpriteSet.load(config), World())
-        pet.show()
-        pets.append(pet)
-        return pet
-
-    yield make
-    for pet in pets:
-        if pet.tray:
-            pet.tray.hide()
-        pet.bubble.close()
-        pet.close()
 
 
 def labels(items):
@@ -38,7 +12,7 @@ def labels(items):
 
 
 def test_hide_and_show_again(make_pet):
-    pet = make_pet()
+    pet = make_pet(has_tray=True)
     assert "숨기기" in labels(menu.default_items(pet))
     pet.ctx.say("안녕", 100)
     pet.toggle_hidden()
@@ -51,7 +25,7 @@ def test_hide_and_show_again(make_pet):
 
 
 def test_running_again_shows_hidden_pet(make_pet):
-    pet = make_pet()
+    pet = make_pet(has_tray=True)
     pet.toggle_hidden()
     pet.greet()
     assert pet.isVisible() and pet.ctx.bubble_text == "나 이미 여기 있어!"
@@ -63,7 +37,7 @@ def test_no_hide_menu_without_tray(make_pet):
 
 
 def test_tray_menu_has_common_items(make_pet):
-    pet = make_pet()
+    pet = make_pet(has_tray=True)
     assert labels(menu.tray_items(pet)) == ["숨기기", "크기", "조용히 하기", "설정...", "업데이트 내역", "종료"]
     pet.tray._fill_menu()
     assert [a.text() for a in pet.tray._menu.actions()] == labels(menu.tray_items(pet))

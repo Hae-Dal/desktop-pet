@@ -84,8 +84,11 @@ class ImagePanel(QGroupBox):
 
     def _browse(self, anim: str) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "이미지 선택", "", IMAGE_FILTER)
-        if not path:
-            return
+        if path:
+            self._choose_checked(anim, path)
+
+    def _choose_checked(self, anim: str, path: str) -> None:
+        """찾아보기·끌어다 놓기로 고른 파일: 넣을 수 있는 이미지인지 검사한 뒤 고름."""
         problem = check_image(path)
         if problem:
             QMessageBox.warning(self, "이미지 선택", problem)
@@ -108,11 +111,7 @@ class ImagePanel(QGroupBox):
         if not anim or not path:
             return
         e.acceptProposedAction()
-        problem = check_image(path)
-        if problem:
-            QMessageBox.warning(self, "이미지 선택", problem)
-            return
-        self._choose(anim, path)
+        self._choose_checked(anim, path)
 
     def _anim_at(self, pos) -> Optional[str]:
         """그 위치가 있는 동작 줄 (이름·미리보기·버튼 어디든)."""

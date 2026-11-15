@@ -1,35 +1,15 @@
 """펫 창: 클릭·드래그·메뉴·이스터에그·캐릭터 바꾸기."""
 import pytest
 from PyQt5.QtCore import QEvent, QPoint, Qt
-from PyQt5.QtGui import QColor, QMouseEvent, QPixmap
+from PyQt5.QtGui import QMouseEvent
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication
 
-from pet import __version__
 from pet import config as config_module
 from pet.config import DEFAULT_LINES, PetConfig, greeting_for
 from pet.ui import easter_egg, menu, pet_widget, prefs
-from pet.ui.sprites import SpriteSet
-from pet.ui.world import World
 
-
-@pytest.fixture
-def make_pet(qapp, monkeypatch):
-    prefs.set_check_updates(False)   # 테스트 중 인터넷 확인 안 함
-    prefs.set_last_seen_version(__version__)     # 업데이트 안내가 대사를 막지 않게
-    pets = []
-
-    def make(config=None):
-        config = config or PetConfig()
-        pet = pet_widget.PetWidget(config, SpriteSet.load(config), World())
-        pet.show()
-        pets.append(pet)
-        return pet
-
-    yield make
-    for pet in pets:
-        pet.bubble.close()
-        pet.close()
+from helpers import save_image
 
 
 def ticks(pet, n):
@@ -132,10 +112,8 @@ def test_update_menu_item_only_when_new_version(make_pet):
 
 
 def test_change_character_resizes(make_pet, tmp_path):
-    pix = QPixmap(60, 30)
-    pix.fill(QColor("blue"))
     (tmp_path / "wide").mkdir()
-    pix.save(str(tmp_path / "wide" / "idle.png"))
+    save_image(tmp_path / "wide" / "idle.png", 60, 30)
     pet = make_pet(PetConfig(sprites_root=str(tmp_path)))
     pet.change_character("wide")
     assert (pet.width(), pet.height()) == (60, 30) and pet.config.character == "wide"
@@ -147,9 +125,7 @@ def bundled_egg(tmp_path, monkeypatch):
     bundled = tmp_path / "bundled"
     egg = bundled / easter_egg.NAME
     egg.mkdir(parents=True)
-    pix = QPixmap(20, 20)
-    pix.fill(QColor("gray"))
-    pix.save(str(egg / "idle.png"))
+    save_image(egg / "idle.png", 20, 20)
     monkeypatch.setattr(config_module, "BUNDLED_SPRITES_DIR", str(bundled))
     root = tmp_path / "sprites"
     root.mkdir()
